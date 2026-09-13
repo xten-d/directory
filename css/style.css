@@ -1180,3 +1180,727 @@ a {
 .btn-select-plan.primary:hover {
   box-shadow: 0 4px 12px var(--primary-glow);
 }
+
+/* ==========================================================================
+   Header Verify Button & Badges
+   ========================================================================== */
+.btn-verify-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-verify-header:hover {
+  background: #DBEAFE;
+  border-color: #93C5FD;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+}
+
+.badge-accent {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.55rem;
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+  border-radius: var(--radius-full);
+}
+
+/* ==========================================================================
+   Faceted Search Filter Pills & Quick Hubs Bar
+   ========================================================================== */
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.facet-pill {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.facet-pill:hover {
+  background: var(--bg-subtle);
+  border-color: #CBD5E1;
+  color: var(--text-main);
+}
+
+.facet-pill.active {
+  background: var(--primary-light);
+  border-color: #93C5FD;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.quick-hubs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0 0.25rem 0;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hub-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex-grow: 1;
+}
+
+.hub-chip {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hub-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.hub-chip.active {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.btn-toggle-anzsic {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+
+.btn-toggle-anzsic:hover {
+  background: var(--primary-light);
+  border-color: #93C5FD;
+}
+
+.btn-toggle-anzsic .chevron {
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+}
+
+.btn-toggle-anzsic.expanded .chevron {
+  transform: rotate(180deg);
+}
+
+/* ==========================================================================
+   ANZSIC Industry Classification Drawer
+   ========================================================================== */
+.anzsic-drawer {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  margin-top: 1rem;
+  box-shadow: var(--shadow-md);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.anzsic-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.btn-drawer-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+.btn-drawer-close:hover {
+  color: var(--text-main);
+}
+
+.anzsic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.anzsic-card-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-page);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.anzsic-card-item:hover {
+  background: var(--primary-light);
+  border-color: #BFDBFE;
+  transform: translateY(-1px);
+}
+
+.anzsic-card-item.active {
+  background: #EFF6FF;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.anzsic-card-icon {
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.anzsic-card-info {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.anzsic-card-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.anzsic-card-meta {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ==========================================================================
+   Invoice & Payee Safety Checker
+   ========================================================================== */
+.invoice-checker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 860px) {
+  .invoice-checker-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.checker-form-pane {
+  background: var(--bg-page);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+}
+
+.btn-text-action {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-text-action:hover {
+  color: var(--primary-hover);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.checksum-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  color: var(--text-light);
+  border: 1px solid var(--border-light);
+}
+
+.checksum-pill.valid {
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success-border);
+}
+
+.checksum-pill.invalid {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+}
+
+.verification-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.report-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+}
+
+.report-entity-name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.25;
+  margin-top: 0.15rem;
+}
+
+.report-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.score-badge {
+  text-align: center;
+  background: var(--bg-page);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.85rem;
+  min-width: 90px;
+}
+
+.score-num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  line-height: 1;
+  display: block;
+}
+
+.score-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+  display: block;
+}
+
+.score-badge.low-risk {
+  background: var(--success-bg);
+  border-color: var(--success);
+}
+.score-badge.low-risk .score-num {
+  color: var(--success);
+}
+
+.score-badge.medium-risk {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+}
+.score-badge.medium-risk .score-num {
+  color: #B45309;
+}
+
+.score-badge.high-risk {
+  background: #FEE2E2;
+  border-color: #DC2626;
+}
+.score-badge.high-risk .score-num {
+  color: #DC2626;
+}
+
+.checklist-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex-grow: 1;
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-page);
+  border: 1px solid var(--border-subtle);
+}
+
+.check-row.pass {
+  border-left: 3px solid var(--success);
+  background: #F0FDF4;
+}
+.check-row.warn {
+  border-left: 3px solid #F59E0B;
+  background: #FFFBEB;
+}
+.check-row.fail {
+  border-left: 3px solid #DC2626;
+  background: #FEF2F2;
+}
+
+.check-icon {
+  font-size: 1rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.check-text strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 0.82rem;
+}
+
+.check-text span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.risk-callout {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.risk-callout.clean {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+}
+
+.risk-callout.warning {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.risk-callout.danger {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+/* ==========================================================================
+   Trust Badge & QR Code Modal
+   ========================================================================== */
+.badge-modal-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .badge-modal-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.badge-style-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.style-tab-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.style-tab-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.badge-preview-box {
+  padding: 1.5rem;
+  background: #F8FAFC;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+}
+
+.code-snippet-box {
+  position: relative;
+}
+
+.btn-copy-snippet {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #1E293B;
+  color: #E2E8F0;
+  border: 1px solid #475569;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn-copy-snippet:hover {
+  background: #334155;
+  color: #FFFFFF;
+}
+
+.qr-preview-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.qr-svg-holder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.qr-svg-holder svg {
+  max-width: 160px;
+  height: auto;
+}
+
+/* ==========================================================================
+   Card Utility Buttons (Copy Accounting & Request Quote)
+   ========================================================================== */
+.card-utilities-bar {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.btn-util {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-util:hover {
+  background: var(--bg-subtle);
+  border-color: #CBD5E1;
+  color: var(--text-main);
+}
+
+.btn-util.primary-util {
+  color: var(--primary);
+  border-color: #BFDBFE;
+  background: var(--primary-light);
+}
+
+.btn-util.primary-util:hover {
+  background: #DBEAFE;
+}
+
+/* ==========================================================================
+   Toast Notification
+   ========================================================================== */
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.toast-notification.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   Print Due Diligence Certificate (@media print)
+   ========================================================================== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #invoiceCheckerModal,
+  #invoiceCheckerModal * {
+    visibility: visible;
+  }
+  
+  #invoiceCheckerModal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: white !important;
+    display: block !important;
+    opacity: 1 !important;
+    padding: 0;
+  }
+
+  .modal-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .btn-modal-close,
+  .modal-footer,
+  .checker-form-pane {
+    display: none !important;
+  }
+
+  .invoice-checker-grid {
+    display: block !important;
+  }
+
+  .verification-card {
+    border: 2px solid #000000 !important;
+    box-shadow: none !important;
+    padding: 2rem !important;
+  }
+
+  .verification-card::before {
+    content: "OFFICIAL XTen.REGISTER DUE DILIGENCE AUDIT CERTIFICATE";
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 900;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .verification-card::after {
+    content: "Certified as extracted from Australian Business Register (ABR) Commonwealth Open Data. Retain this certificate with payment approval voucher for tax and audit compliance.";
+    display: block;
+    font-size: 0.75rem;
+    color: #555555;
+    border-top: 1px solid #CCCCCC;
+    padding-top: 0.5rem;
+    margin-top: 2rem;
+    text-align: center;
+  }
+}
+

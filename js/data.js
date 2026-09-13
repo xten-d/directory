@@ -61,6 +61,43 @@ const PURCHASABLE_FEATURES = [
   }
 ];
 
+const ANZSIC_DIVISIONS = [
+  { code: "A", name: "Agriculture, Forestry & Fishing", icon: "🌾", count: "84k", slug: "agriculture" },
+  { code: "B", name: "Mining & Resources", icon: "⛏️", count: "18k", slug: "mining" },
+  { code: "C", name: "Manufacturing", icon: "🏭", count: "142k", slug: "manufacturing" },
+  { code: "D", name: "Electricity, Gas & Water", icon: "⚡", count: "12k", slug: "utilities" },
+  { code: "E", name: "Construction & Trades", icon: "🏗️", count: "485k", slug: "construction" },
+  { code: "F", name: "Wholesale Trade", icon: "📦", count: "116k", slug: "wholesale" },
+  { code: "G", name: "Retail Trade", icon: "🛍️", count: "235k", slug: "retail" },
+  { code: "H", name: "Accommodation & Food", icon: "☕", count: "178k", slug: "hospitality" },
+  { code: "I", name: "Transport & Logistics", icon: "🚚", count: "165k", slug: "transport" },
+  { code: "J", name: "IT, Software & Media", icon: "💻", count: "98k", slug: "technology" },
+  { code: "K", name: "Financial & Insurance", icon: "🏦", count: "290k", slug: "finance" },
+  { code: "L", name: "Rental & Real Estate", icon: "🏢", count: "280k", slug: "real-estate" },
+  { code: "M", name: "Professional & Technical", icon: "⚖️", count: "410k", slug: "professional" },
+  { code: "N", name: "Administrative & Support", icon: "📋", count: "155k", slug: "administrative" },
+  { code: "P", name: "Education & Training", icon: "🎓", count: "52k", slug: "education" },
+  { code: "Q", name: "Health Care & Medical", icon: "🏥", count: "260k", slug: "healthcare" },
+  { code: "R", name: "Arts & Recreation", icon: "🎨", count: "45k", slug: "arts" },
+  { code: "S", name: "Other Personal Services", icon: "🔧", count: "185k", slug: "other-services" }
+];
+
+const POPULAR_HUBS = [
+  { state: "NSW", name: "Sydney", postcode: "2000" },
+  { state: "NSW", name: "Parramatta", postcode: "2150" },
+  { state: "VIC", name: "Melbourne", postcode: "3000" },
+  { state: "VIC", name: "Dandenong", postcode: "3175" },
+  { state: "VIC", name: "Ballarat", postcode: "3350" },
+  { state: "QLD", name: "Brisbane", postcode: "4000" },
+  { state: "QLD", name: "Gold Coast", postcode: "4217" },
+  { state: "WA", name: "Perth", postcode: "6000" },
+  { state: "WA", name: "Fremantle", postcode: "6160" },
+  { state: "SA", name: "Adelaide", postcode: "5000" },
+  { state: "TAS", name: "Hobart", postcode: "7000" },
+  { state: "ACT", name: "Canberra", postcode: "2601" },
+  { state: "NT", name: "Darwin", postcode: "0800" }
+];
+
 const DIRECTORY_DATA = {
   companies: [
     {
@@ -83,6 +120,8 @@ const DIRECTORY_DATA = {
       phone: "(08) 6555 6897",
       email: "directory@xten.au",
       website: "https://xten.au",
+      is_peppol_ready: true,
+      peppol_id: "0151:38602365346",
       verified: true,
       claimed: true,
       tier: "prominent",
@@ -219,6 +258,8 @@ const DIRECTORY_DATA = {
       phone: "(08) 7123 6177",
       email: "reception@adelaidepaediatrics.com.au",
       website: "https://www.adelaidepaediatrics.com.au",
+      is_peppol_ready: true,
+      peppol_id: "0151:78268981692",
       verified: true,
       claimed: true,
       tier: "prominent",
@@ -248,6 +289,8 @@ const DIRECTORY_DATA = {
       phone: "133 723",
       email: "contact@qbe.com.au",
       website: "https://www.qbe.com.au",
+      is_peppol_ready: true,
+      peppol_id: "0151:11000000948",
       verified: true,
       claimed: true,
       views_this_month: 2319,
@@ -273,6 +316,8 @@ const DIRECTORY_DATA = {
       phone: "(03) 5320 1200",
       email: "editorial@thecourier.com.au",
       website: "https://www.thecourier.com.au",
+      is_peppol_ready: true,
+      peppol_id: "0151:40006247016",
       verified: true,
       claimed: false,
       views_this_month: 154,
