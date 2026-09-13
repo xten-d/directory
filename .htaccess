@@ -1,12 +1,21 @@
 # ==============================================================================
-# Apache / Shared Hosting Configuration for XTen National Directory
-# Optimized for cPanel / LiteSpeed / Apache 2.4+
+# Apache / LiteSpeed Shared Hosting Configuration for XTen National Directory
+# Optimized for cPanel / LiteSpeed Web Server
+# Multi-Subdomain Support: directory.xten.au, people.xten.au, register.xten.au
 # ==============================================================================
 
-# 1. Enable Rewrite Engine
+# 1. Enable Rewrite Engine & Force HTTPS
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
+
+    # Force HTTPS across all subdomains
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Subdomain Canonical Redirect: register.xten.au -> directory.xten.au
+    RewriteCond %{HTTP_HOST} ^(www\.)?register\.xten\.au$ [NC]
+    RewriteRule ^(.*)$ https://directory.xten.au/$1 [R=301,L]
 
     # Redirect trailing slashes if not a directory
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -18,12 +27,26 @@
     RewriteRule ^(.*)$ index.html [QSA,L]
 </IfModule>
 
-# 2. Gzip / Deflate Compression
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml
+# 2. CORS Headers for Embeddable SVG Trust Badges & QR Codes
+<IfModule mod_headers.c>
+    # Allow subscriber websites to embed dynamic SVG trust badges and QR seals
+    <FilesMatch "\.(svg|png|jpg|jpeg|json)$">
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+
+    # Security & Protection Headers
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# 3. Browser Caching
+# 3. Gzip / Deflate Compression (LiteSpeed / Apache)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+# 4. Browser Caching
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType text/html "access plus 1 hour"
@@ -34,14 +57,6 @@
     ExpiresByType image/jpeg "access plus 1 month"
     ExpiresByType image/svg+xml "access plus 1 month"
     ExpiresByType image/x-icon "access plus 1 year"
-</IfModule>
-
-# 4. Security & Charset Headers
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
 AddDefaultCharset UTF-8
