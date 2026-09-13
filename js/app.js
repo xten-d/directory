@@ -186,6 +186,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // the URL, see Api\DirectoryController::claimUrl()). No handling is
   // added here for a raw `?abn=`/`?claim=` param — that's the exact
   // thing this replaces, not a fallback to keep alive.
+  // Direct entity/person deep link by ABN (used by the sitemap generator's
+  // <loc> URLs — `?search=<abn>` doesn't work, the live search only
+  // matches names/trading names, never the raw ABN column).
+  if (urlParams.has('abn') && !urlParams.has('slug')) {
+    (async () => {
+      const abn = urlParams.get('abn').replace(/\s+/g, '');
+      const portal = state.activePortal === 'companies' ? 'entity' : 'person';
+      try {
+        const data = await apiFetch(`/${portal}/${abn}`);
+        openProfileModal(mapApiItem(data[portal], true));
+      } catch (err) {
+        showToast(`Could not load ABN ${abn}: ${err.message}`);
+      }
+    })();
+  }
+
   if (urlParams.has('slug')) {
     (async () => {
       try {
