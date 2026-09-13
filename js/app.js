@@ -15,8 +15,71 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedHub: '',
     sortBy: 'views',
     selectedItem: null,
-    badgeStyle: 'dark'
+    badgeStyle: 'dark',
+    currentResults: []
   };
+
+  // Live backend (directory-module, xtenstack/internal) — public,
+  // unauthenticated, CORS-enabled for this exact origin. Previously this
+  // whole app ran entirely against the static js/data.js sample set;
+  // search/claim/enquiry/opt-out now hit the real API.
+  const API_BASE = 'https://stack-internal.xten.au/api/v1/directory';
+
+  async function apiFetch(path, options) {
+    const res = await fetch(`${API_BASE}${path}`, options);
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const err = new Error(body.error || `Request failed (${res.status})`);
+      err.status = res.status;
+      throw err;
+    }
+
+    return body;
+  }
+
+  /**
+   * Maps the real API's leaner field set onto the shape createCardHTML/
+   * openProfileModal/openClaimModal expect. Deliberately does NOT
+   * fabricate fields the live backend has no data for (has_video,
+   * views_this_month, description/bio, direct phone) — those render as
+   * absent rather than invented, matching this project's own "don't
+   * overclaim" findings elsewhere. `full` (entity/personAction) carries
+   * more than `search`'s per-row shape (trading_names, peppol contact,
+   * claim_url) — pass true once a single record's detail has been
+   * fetched.
+   */
+  function mapApiItem(r, full) {
+    const item = {
+      id: r.abn,
+      abn: r.abn,
+      name: r.name,
+      full_name: r.name,
+      state: r.state,
+      postcode: r.postcode,
+      status: r.abn_status === 'ACT' ? 'Active' : r.abn_status,
+      entity_type: r.entity_type,
+      claimed: !!r.is_claimed,
+      verified: !!r.is_claimed,
+      tier: r.claim_tier || null
+    };
+
+    if (full) {
+      item.acn = r.acn || null;
+      item.trading_names = r.trading_names || [];
+      item.is_peppol_ready = !!r.is_peppol_ready;
+      item.peppol_id = r.peppol_id || (item.is_peppol_ready ? `0151:${r.abn}` : null);
+      item.email = r.peppol_contact_email || null;
+      item.gst_registered = r.gst_status === 'ACT';
+      item.claim_url = r.claim_url || null;
+      item.contact_available = !!r.contact_available;
+    }
+
+    return item;
+  }
+
+  let searchDebounceTimer = null;
+  let searchRequestSeq = 0;
 
   // DOM Elements - Navigation & Search
   const tabCompanies = document.getElementById('tabCompanies');
@@ -116,6 +179,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (urlParams.has('verify')) {
     openInvoiceCheckerModal(urlParams.get('verify'));
+  }
+
+  // Tokenized claim link (/claim?slug=..., generated server-side by
+  // claim_url on entity/personAction — deliberately NOT the raw ABN in
+  // the URL, see Api\DirectoryController::claimUrl()). No handling is
+  // added here for a raw `?abn=`/`?claim=` param — that's the exact
+  // thing this replaces, not a fallback to keep alive.
+  if (urlParams.has('slug')) {
+    (async () => {
+      try {
+        const data = await apiFetch(`/resolve/${encodeURIComponent(urlParams.get('slug'))}`);
+        const portalType = data.entity ? 'entity' : 'person';
+        const item = mapApiItem(data[portalType], true);
+
+        setPortal(portalType === 'entity' ? 'companies' : 'people');
+        openClaimModal(item);
+      } catch (err) {
+        showToast(`This claim link is invalid or has expired (${err.message}).`);
+      }
+    })();
   }
 
   // Render Hub Pills & ANZSIC Drawer
@@ -304,87 +387,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Render Result Cards
+  // Render Result Cards — debounced trigger; the real fetch+DOM update
+  // is fetchAndRenderResults() below. render() itself stays synchronous
+  // so every existing call site (search input, filters, sort, portal
+  // switch) doesn't need to change.
   function render() {
-    const rawData = state.activePortal === 'companies' ? DIRECTORY_DATA.companies : DIRECTORY_DATA.people;
-    
-    // Filter Data
-    let filtered = rawData.filter(item => {
-      // Query match
-      if (state.searchQuery) {
-        const q = state.searchQuery;
-        const nameMatch = (item.name || item.full_name || '').toLowerCase().includes(q);
-        const tradingMatch = (item.trading_names || [item.business_name || '']).some(t => t.toLowerCase().includes(q));
-        const abnMatch = (item.abn || '').replace(/\s+/g, '').includes(q.replace(/\s+/g, ''));
-        const acnMatch = (item.acn || '').includes(q);
-        const suburbMatch = (item.suburb || '').toLowerCase().includes(q);
-        const postMatch = (item.postcode || '').includes(q);
-        const profMatch = (item.profession || item.anzsic_class || '').toLowerCase().includes(q);
-        if (!nameMatch && !tradingMatch && !abnMatch && !acnMatch && !suburbMatch && !postMatch && !profMatch) {
-          return false;
-        }
-      }
-      
-      // State match
-      if (state.selectedState && item.state !== state.selectedState) {
-        return false;
-      }
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(fetchAndRenderResults, 200);
+  }
 
-      // Hub match
-      if (state.selectedHub && (item.suburb || '').toLowerCase() !== state.selectedHub.toLowerCase()) {
-        // If state matches but suburb doesn't, filter out unless user cleared hub
-        return false;
-      }
-      
-      // Category match
-      if (state.selectedCategory) {
-        const itemCat = item.anzsic_class || item.category || '';
-        if (!itemCat.toLowerCase().includes(state.selectedCategory.toLowerCase()) && 
-            !state.selectedCategory.toLowerCase().includes(itemCat.toLowerCase())) {
-          return false;
-        }
-      }
+  async function fetchAndRenderResults() {
+    const portal = state.activePortal === 'companies' ? 'entity' : 'person';
+    const params = new URLSearchParams({ portal, limit: '50' });
+    if (state.searchQuery) params.set('q', state.searchQuery);
+    if (state.selectedState) params.set('state', state.selectedState);
+    // anzsic_div: the live API accepts and echoes this but doesn't filter
+    // on it yet (abn_lookup carries no ANZSIC column server-side) — sent
+    // anyway so it's a no-op today, not silently dropped, and starts
+    // working the moment that gap closes.
+    if (state.selectedCategory) params.set('anzsic_div', state.selectedCategory);
 
-      // Faceted Filter Pills
-      if (state.activeFacet === 'peppol' && !item.is_peppol_ready) {
-        return false;
-      }
-      if (state.activeFacet === 'gst' && !item.gst_registered) {
-        return false;
-      }
-      if (state.activeFacet === 'contact' && !item.phone && !item.email && !item.email_proxy) {
-        return false;
-      }
-      if (state.activeFacet === 'video' && !item.has_video) {
-        return false;
-      }
-      if (state.activeFacet === 'featured' && item.tier !== 'featured' && item.tier !== 'prominent') {
-        return false;
-      }
-      
-      return true;
-    });
+    const requestId = ++searchRequestSeq;
 
-    // Sort
-    filtered.sort((a, b) => {
-      // Prioritize prominent tier
+    resultsContainer.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">Searching the live registry…</div>
+    `;
+
+    let data;
+    try {
+      data = await apiFetch(`/search?${params.toString()}`);
+    } catch (err) {
+      if (requestId !== searchRequestSeq) return; // superseded by a newer search
+      resultsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; background: var(--bg-surface); border: 1px dashed var(--border-light); border-radius: var(--radius-lg);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">⚠️</div>
+          <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Could not reach the registry</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">${escapeHTML(err.message)}</p>
+        </div>
+      `;
+      resultsCountEl.textContent = '';
+      return;
+    }
+
+    if (requestId !== searchRequestSeq) return;
+
+    let items = (data.results || []).map(r => mapApiItem(r, false));
+
+    // Faceted pills over this page of results. 'gst' and 'video' have no
+    // backing field from search's lean row shape — video has none at all
+    // anywhere in the live schema, so that pill is inert rather than
+    // hiding every result.
+    if (state.activeFacet === 'contact') items = items.filter(i => i.verified); // only a claimed profile has a contact route today
+    if (state.activeFacet === 'featured') items = items.filter(i => i.tier === 'featured' || i.tier === 'prominent');
+
+    items.sort((a, b) => {
       if (a.tier === 'prominent' && b.tier !== 'prominent') return -1;
       if (b.tier === 'prominent' && a.tier !== 'prominent') return 1;
-
-      if (state.sortBy === 'views') return (b.views_this_month || 0) - (a.views_this_month || 0);
-      if (state.sortBy === 'name') {
-        const nameA = a.name || a.full_name || '';
-        const nameB = b.name || b.full_name || '';
-        return nameA.localeCompare(nameB);
-      }
-      return 0;
+      if (state.sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+      return 0; // 'views' sort has no backing data from the live API
     });
 
-    // Update count
-    resultsCountEl.innerHTML = `Showing <strong>${filtered.length}</strong> ${state.activePortal === 'companies' ? 'verified companies' : 'registered practitioners'}`;
+    state.currentResults = items;
 
-    // Render cards HTML
-    if (filtered.length === 0) {
+    resultsCountEl.innerHTML = `Showing <strong>${items.length}</strong> ${state.activePortal === 'companies' ? 'verified companies' : 'registered practitioners'}${typeof data.total === 'number' ? ` of ${data.total.toLocaleString()}` : ''}`;
+
+    if (items.length === 0) {
       resultsContainer.innerHTML = `
         <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; background: var(--bg-surface); border: 1px dashed var(--border-light); border-radius: var(--radius-lg);">
           <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔍</div>
@@ -395,13 +462,17 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    resultsContainer.innerHTML = filtered.map(item => createCardHTML(item)).join('');
+    resultsContainer.innerHTML = items.map(item => createCardHTML(item)).join('');
+    attachCardListeners(items);
+    updateSchemaLD(items);
+  }
 
-    // Attach card event listeners
-    attachCardListeners(rawData);
+  /** Fetches the full entity/person record (trading names, Peppol contact, claim_url) — search's own rows are deliberately lean. */
+  async function fetchItemDetail(item) {
+    const portal = state.activePortal === 'companies' ? 'entity' : 'person';
+    const data = await apiFetch(`/${portal}/${item.abn}`);
 
-    // Dynamic Schema.org injection
-    updateSchemaLD(filtered);
+    return mapApiItem(data[portal], true);
   }
 
   // Card Template
@@ -409,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isCompany = state.activePortal === 'companies';
     const title = isCompany ? item.name : item.full_name;
     const subTitle = isCompany ? (item.trading_names ? item.trading_names[0] : '') : item.profession;
-    const location = `${item.suburb} ${item.state} ${item.postcode}`;
+    const location = [item.state, item.postcode].filter(Boolean).join(' ') || 'Location not published';
     const categoryTag = isCompany ? item.anzsic_class : item.category;
     const tierClass = item.tier === 'prominent' ? 'tier-prominent' : (item.tier === 'featured' ? 'tier-featured' : '');
 
@@ -482,10 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div class="card-footer">
-          <span class="view-stat" title="Unique visitors in the past 30 days">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-            ${item.views_this_month} views
-          </span>
+          <span></span>
 
           <div class="card-actions">
             <button class="btn-card-action btn-view-profile" data-id="${item.id}">Details</button>
@@ -500,19 +568,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Attach Card Event Listeners
   function attachCardListeners(rawData) {
+    // view-profile and claim-profile need the full record (trading
+    // names, Peppol contact, claim_url) — search's own rows are lean,
+    // so fetch the real detail before opening either modal.
     document.querySelectorAll('.btn-view-profile').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
         const item = rawData.find(d => d.id === id);
-        if (item) openProfileModal(item);
+        if (!item) return;
+        try {
+          openProfileModal(await fetchItemDetail(item));
+        } catch (err) {
+          showToast(`Could not load this profile: ${err.message}`);
+        }
       });
     });
 
     document.querySelectorAll('.btn-claim-profile').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
         const item = rawData.find(d => d.id === id);
-        if (item) openClaimModal(item);
+        if (!item) return;
+        try {
+          openClaimModal(await fetchItemDetail(item));
+        } catch (err) {
+          showToast(`Could not load this profile: ${err.message}`);
+        }
       });
     });
 
@@ -569,32 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : '<span class="badge-unverified">Unclaimed Registry Record</span>';
     document.getElementById('modalProfileBadge').innerHTML = badgeHTML;
 
-    // Video Showcase Player Box
-    const videoBoxHTML = item.has_video ? `
-      <div class="video-showcase-box">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; color: #C084FC; text-transform: uppercase;">
-            🎥 30-Second Video Showcase
-          </span>
-          <span style="font-size: 0.75rem; color: #CBD5E1; background: #334155; padding: 2px 8px; border-radius: 10px;">
-            ⏱ ${item.video_duration || '0:30'} HD
-          </span>
-        </div>
-        <div class="video-player-screen" style="cursor: pointer;" onclick="alert('Playing 30-sec HD showcase video: \\'${escapeHTML(item.video_title || 'Authentic Business Introduction')}\\'');">
-          <div class="play-circle-btn" title="Play Video Showcase">▶</div>
-        </div>
-        <div class="video-meta-bar">
-          <span style="font-weight: 600; color: #F8FAFC;">${escapeHTML(item.video_title || 'Authentic Business Introduction')}</span>
-          <span style="color: #94A3B8;">Australian Edge CDN · Zero Competitor Ads</span>
-        </div>
-        <div class="video-progress">
-          <div class="video-progress-fill"></div>
-        </div>
-      </div>
-    ` : '';
-
     const detailsHTML = `
-      ${videoBoxHTML}
       <div class="detail-grid">
         ${item.abn ? `
           <div class="detail-label">ABN</div>
@@ -645,29 +701,21 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="detail-value">${escapeHTML(item.anzsic_class || item.category || 'Standard Registration')}</div>
 
         <div class="detail-label">Registered Location</div>
-        <div class="detail-value">📍 ${escapeHTML(item.address || item.clinic_address || `${item.suburb} ${item.state} ${item.postcode}`)}</div>
+        <div class="detail-value">📍 ${escapeHTML([item.state, item.postcode].filter(Boolean).join(' ') || 'Not published')}</div>
 
-        ${item.phone ? `
-          <div class="detail-label">Phone Contact</div>
-          <div class="detail-value"><a href="tel:${item.phone}" style="color: var(--primary); font-weight: 700;">${escapeHTML(item.phone)}</a></div>
-        ` : ''}
-
-        ${(item.email || item.email_proxy) ? `
+        ${item.email ? `
           <div class="detail-label">Contact Email</div>
-          <div class="detail-value"><a href="mailto:${item.email || item.email_proxy}" style="color: var(--primary);">${escapeHTML(item.email || item.email_proxy)}</a></div>
+          <div class="detail-value"><a href="mailto:${item.email}" style="color: var(--primary);">${escapeHTML(item.email)}</a></div>
         ` : ''}
 
-        ${item.website ? `
-          <div class="detail-label">Website</div>
-          <div class="detail-value"><a href="${item.website}" target="_blank" rel="noopener" style="color: var(--primary); text-decoration: underline;">${escapeHTML(item.website)} ↗</a></div>
+        ${(!item.email && item.contact_available) ? `
+          <div class="detail-label">Contact</div>
+          <div class="detail-value">Available via a verified enquiry — use "Send Direct Enquiry" below.</div>
         ` : ''}
-
-        <div class="detail-label">Monthly Views</div>
-        <div class="detail-value">${item.views_this_month || 0} unique monthly page impressions</div>
       </div>
 
       <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light); font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-top: 1rem;">
-        ${escapeHTML(item.description || item.bio || 'Official Australian Business Register statutory public profile. Verified via Commonwealth of Australia open data registries.')}
+        Official Australian Business Register statutory public profile. Verified via Commonwealth of Australia open data registries.
       </div>
 
       <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
@@ -784,19 +832,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPrintCertificate) btnPrintCertificate.style.display = 'none';
   }
 
-  function runInvoiceSafetyAudit() {
+  async function runInvoiceSafetyAudit() {
     const rawAbn = verifyAbnInput.value;
     const name = verifyNameInput.value.trim();
-    const total = parseFloat(verifyTotalInput.value || 0);
     const gst = parseFloat(verifyGstInput.value || 0);
-    const bsb = verifyBsbInput.value.trim();
-    const acct = verifyAccountNameInput.value.trim();
 
     const abnCheck = validateModulo89(rawAbn);
     const cleanAbn = abnCheck.clean || '';
 
-    const allData = [...DIRECTORY_DATA.companies, ...DIRECTORY_DATA.people];
-    const match = allData.find(e => (e.abn || '').replace(/\s+/g, '') === cleanAbn);
+    // Server-side counterpart (Directory-Module-Plan.md §4.6) — real
+    // ABR/ATO data, and the backend already computes risk_score and
+    // name_match_confidence, so this doesn't re-derive them locally.
+    let result;
+    try {
+      result = cleanAbn ? await apiFetch(`/verify-abn?abn=${cleanAbn}&name=${encodeURIComponent(name)}`) : null;
+    } catch (err) {
+      result = null;
+    }
+
+    const match = result && result.abn_status ? result : null;
 
     let score = 100;
     const redFlags = [];
@@ -814,48 +868,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (match) {
-      document.getElementById('reportEntityName').textContent = match.name || match.full_name;
-      document.getElementById('reportEntityMeta').textContent = `${match.entity_type} · Registered in ${match.state} ${match.postcode} since ${match.registered_since || 'Historical'}`;
+      const gstRegistered = match.gst_status === 'ACT';
 
-      checks.atoStatus = { pass: true, text: `Active registration confirmed on Australian Business Register.` };
+      document.getElementById('reportEntityName').textContent = match.legal_name || name || `ABN ${formatABN(cleanAbn)}`;
+      document.getElementById('reportEntityMeta').textContent = `${match.entity_type_text || 'Registered entity'} · ${[match.state, match.postcode].filter(Boolean).join(' ') || 'Australia'}`;
+
+      checks.atoStatus = { pass: match.abn_status === 'ACT', text: match.abn_status === 'ACT' ? 'Active registration confirmed on Australian Business Register.' : `ABN status is "${match.abn_status}" — not currently active.` };
+      if (match.abn_status !== 'ACT') {
+        score -= 30;
+        redFlags.push(`Registration Status: This ABN's ATO status is "${match.abn_status}", not Active.`);
+      }
 
       // GST Audit
-      if (gst > 0 && !match.gst_registered) {
+      if (gst > 0 && !gstRegistered) {
         checks.gst = { pass: false, text: 'Invoice charges GST, but entity is NOT GST-registered with the ATO!' };
         score -= 25;
         redFlags.push('Tax Risk: This invoice charges GST, but ATO records indicate the payee is NOT registered for GST. You cannot legally claim input tax credits on this payment.');
-      } else if (match.gst_registered) {
-        checks.gst = { pass: true, text: `Actively registered for GST with the ATO. GST rate of ~10% is consistent.` };
+      } else if (gstRegistered) {
+        checks.gst = { pass: true, text: 'Actively registered for GST with the ATO. GST rate of ~10% is consistent.' };
       }
 
-      // Name Match
-      const inputName = name.toLowerCase();
-      const legalName = (match.name || match.full_name || '').toLowerCase();
-      const tradingNames = (match.trading_names || [match.business_name || '']).map(t => t.toLowerCase());
-      const isDirectMatch = legalName.includes(inputName) || inputName.includes(legalName) || tradingNames.some(t => t.includes(inputName) || inputName.includes(t));
-
-      if (isDirectMatch) {
-        checks.nameMatch = { pass: true, text: `Payee name matches official statutory registration: "${match.name || match.full_name}".` };
+      // Name Match — backend's own confidence score, not re-derived here.
+      const confidence = typeof match.name_match_confidence === 'number' ? match.name_match_confidence : null;
+      if (confidence === null) {
+        checks.nameMatch = { pass: true, text: 'No payee name supplied to cross-check.' };
+      } else if (confidence >= 0.7) {
+        checks.nameMatch = { pass: true, text: `Payee name matches official statutory registration: "${match.legal_name}".` };
       } else {
-        checks.nameMatch = { pass: false, text: `Name discrepancy: Invoice says "${name}", registered name is "${match.name || match.full_name}".` };
+        checks.nameMatch = { pass: false, text: `Name discrepancy: Invoice says "${name}", registered name is "${match.legal_name}".` };
         score -= 20;
-        redFlags.push(`Name Discrepancy: The payee name on your invoice does not match the official legal name (${match.name || match.full_name}) or known trading names.`);
+        redFlags.push(`Name Discrepancy: The payee name on your invoice does not closely match the official legal name (${match.legal_name}) or known trading names.`);
       }
 
       // Peppol
       if (match.is_peppol_ready) {
         checks.peppol = { pass: true, text: `Verified Peppol Participant ID: ${match.peppol_id || ('0151:' + cleanAbn)}. Supports automated e-invoicing.` };
       } else {
-        checks.peppol = { pass: false, text: `Not enrolled in Peppol e-Invoicing. Manual bank transfer verification recommended.` };
+        checks.peppol = { pass: false, text: 'Not enrolled in Peppol e-Invoicing. Manual bank transfer verification recommended.' };
+      }
+
+      if (typeof match.risk_score === 'number') {
+        score = match.risk_score;
       }
     } else {
       if (abnCheck.valid) {
         document.getElementById('reportEntityName').textContent = name || `ABN ${formatABN(cleanAbn)}`;
-        document.getElementById('reportEntityMeta').textContent = `Valid Commonwealth Sequence · Active Statutory Format`;
-        checks.atoStatus = { pass: true, text: `Valid Commonwealth sequence structure.` };
-        checks.nameMatch = { pass: true, text: `Payee name format accepted for verification.` };
-        checks.gst = { pass: true, text: `Standard GST compliance checks applied.` };
-        score = 88;
+        document.getElementById('reportEntityMeta').textContent = 'Valid Commonwealth sequence, but not found on the register.';
+        score = 40;
+        redFlags.push('Not Found: This ABN passes its checksum but is not on the Australian Business Register — could be a typo or a fabricated number.');
       } else {
         document.getElementById('reportEntityName').textContent = 'Invalid / Fraudulent ABN';
         document.getElementById('reportEntityMeta').textContent = 'High fraud risk detected. Do not disburse funds without contacting supplier.';
@@ -863,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    score = Math.max(10, Math.min(100, score));
+    score = Math.max(10, Math.min(100, Math.round(score)));
 
     // Update Checklist UI
     updateCheckRow('checkModulo89', checks.modulo.pass, checks.modulo.text);
@@ -950,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
     enquiryModal.classList.add('active');
   }
 
-  enquiryForm.addEventListener('submit', (e) => {
+  enquiryForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const item = state.selectedItem;
     const senderName = document.getElementById('enquirySenderName').value.trim();
@@ -959,13 +1019,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const urgency = document.getElementById('enquiryUrgency').value;
     const message = document.getElementById('enquiryMessage').value.trim();
 
-    if (!senderName || !senderEmail || !message) return;
+    if (!senderName || !senderEmail || !message || !item || !item.abn) return;
 
-    // Simulate direct inquiry routing
-    enquiryModal.classList.remove('active');
-    enquiryForm.reset();
+    const submitBtn = enquiryForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
 
-    showToast(`✔ Lead enquiry delivered to ${item.name || item.full_name}! Reference: RFQ-${Math.floor(100000 + Math.random() * 900000)}`);
+    try {
+      await apiFetch('/enquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          abn: item.abn,
+          sender_name: senderName,
+          sender_email: senderEmail,
+          sender_phone: senderPhone,
+          urgency,
+          message
+        })
+      });
+
+      enquiryModal.classList.remove('active');
+      enquiryForm.reset();
+      showToast(`✔ Enquiry delivered to ${item.name || item.full_name}.`);
+    } catch (err) {
+      showToast(`Could not send your enquiry: ${err.message}`);
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 
   // =========================================================================
@@ -1244,9 +1324,17 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const planId = btn.dataset.plan;
         pricingModal.classList.remove('active');
-        const currentData = state.activePortal === 'companies' ? DIRECTORY_DATA.companies : DIRECTORY_DATA.people;
-        const targetItem = state.selectedItem || currentData[0];
-        openClaimModal(targetItem, planId);
+
+        // Claiming needs a specific ABN — previously this silently fell
+        // back to picking an arbitrary demo entity when nothing was
+        // selected, which would have submitted a real claim against the
+        // wrong listing once claimForm started actually POSTing.
+        if (!state.selectedItem || !state.selectedItem.abn) {
+          showToast('Search for and open your listing first, then choose a plan from its Claim Profile screen.');
+          return;
+        }
+
+        openClaimModal(state.selectedItem, planId);
       });
     });
   }
@@ -1284,38 +1372,51 @@ document.addEventListener('DOMContentLoaded', () => {
     optoutModal.classList.add('active');
   });
 
-  // Claim Form Submit
-  claimForm.addEventListener('submit', (e) => {
+  // Claim Form Submit — package select values already match the live
+  // API's PACKAGE_PRICES keys exactly (standard/featured/prominent/
+  // video_showcase/bundle_prominent_video), so it's sent as-is.
+  claimForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const claimantName = document.getElementById('claimName').value.trim();
     const claimantEmail = document.getElementById('claimEmail').value.trim();
     const claimantPhone = document.getElementById('claimPhone').value.trim();
     const claimantRole = document.getElementById('claimRole').value;
-    const claimantCategory = claimCategorySelect ? (claimCategorySelect.value || 'Unspecified') : 'Unspecified';
-    const claimantPackage = claimPackageSelect ? claimPackageSelect.options[claimPackageSelect.selectedIndex].text : 'Standard Claim';
+    const claimantPackage = claimPackageSelect ? claimPackageSelect.value : 'standard';
     const item = state.selectedItem;
 
-    if (!claimantName || !claimantEmail) return;
+    if (!claimantName || !claimantEmail || !claimantRole || !item || !item.abn) return;
 
-    const subject = encodeURIComponent(`Profile Claim & Upgrade Request: ${item.name || item.full_name} (ABN ${item.abn})`);
-    const body = encodeURIComponent(
-      `Claim & Upgrade Request Details:\n` +
-      `--------------------------------\n` +
-      `Entity / Name: ${item.name || item.full_name}\n` +
-      `ABN: ${item.abn}\n` +
-      `Portal: ${state.activePortal}\n` +
-      `Confirmed Industry / ANZSIC: ${claimantCategory}\n` +
-      `Selected Package: ${claimantPackage}\n` +
-      `Claimant: ${claimantName}\n` +
-      `Email: ${claimantEmail}\n` +
-      `Phone: ${claimantPhone}\n` +
-      `Role: ${claimantRole}\n\n` +
-      `Submitted via XTen National Portal.`
-    );
+    const submitBtn = claimForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
 
-    alert(`Thank you, ${claimantName}! Your claim and upgrade request for "${item.name || item.full_name}" [${claimantPackage}] has been registered. Our onboarding team at directory@xten.au will confirm setup.`);
-    claimModal.classList.remove('active');
-    window.location.href = `mailto:directory@xten.au?subject=${subject}&body=${body}`;
+    try {
+      const result = await apiFetch('/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          abn: item.abn,
+          portal_type: state.activePortal === 'companies' ? 'entity' : 'person',
+          name: claimantName,
+          email: claimantEmail,
+          phone: claimantPhone,
+          role: claimantRole,
+          package: claimantPackage
+        })
+      });
+
+      claimModal.classList.remove('active');
+      claimForm.reset();
+
+      if (result.status === 'pending_payment' && result.checkout_url) {
+        window.location.href = result.checkout_url;
+      } else {
+        alert(result.message || 'Check your email for a verification link (expires in 48 hours).');
+      }
+    } catch (err) {
+      alert(`Could not submit your claim: ${err.message}`);
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 
   // Claim Profile Modal
@@ -1343,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Opt-out Form Submit
-  optoutForm.addEventListener('submit', (e) => {
+  optoutForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const abn = document.getElementById('optoutABN').value.trim();
     const email = document.getElementById('optoutEmail').value.trim();
@@ -1351,19 +1452,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!abn || !email) return;
 
-    const subject = encodeURIComponent(`Privacy Act Opt-Out / Takedown: ABN ${abn}`);
-    const body = encodeURIComponent(
-      `Privacy Act Request (Section 16):\n` +
-      `---------------------------------\n` +
-      `ABN to Suppress: ${abn}\n` +
-      `Contact Email: ${email}\n` +
-      `Reason: ${reason}\n\n` +
-      `This record will be immediately removed from people.xten.au indexing.`
-    );
+    const submitBtn = optoutForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
 
-    alert(`Your opt-out request for ABN ${abn} has been received and queued for immediate suppression in compliance with the Australian Privacy Act 1988.`);
-    optoutModal.classList.remove('active');
-    window.location.href = `mailto:directory@xten.au?subject=${subject}&body=${body}`;
+    try {
+      const result = await apiFetch('/opt-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ abn, email, reason })
+      });
+
+      optoutModal.classList.remove('active');
+      optoutForm.reset();
+      alert(result.message || 'Your listing has been suppressed immediately.');
+    } catch (err) {
+      alert(`Could not process your opt-out request: ${err.message}`);
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 
   function formatABN(abn) {
