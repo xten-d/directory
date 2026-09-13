@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenPricing = document.getElementById('btnOpenPricing');
   const pricingGridContainer = document.getElementById('pricingGridContainer');
   const claimPackageSelect = document.getElementById('claimPackage');
+  const claimCategorySelect = document.getElementById('claimCategory');
   const claimForm = document.getElementById('claimForm');
   const optoutForm = document.getElementById('optoutForm');
 
@@ -433,6 +434,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (preselectedPackage && claimPackageSelect) {
       claimPackageSelect.value = preselectedPackage;
     }
+    // Attempt to pre-select category if known, otherwise prompt claimant to categorize
+    if (claimCategorySelect) {
+      claimCategorySelect.value = '';
+      const catText = (item.anzsic_class || item.category || '').toLowerCase();
+      if (catText) {
+        for (let i = 0; i < claimCategorySelect.options.length; i++) {
+          if (catText.includes(claimCategorySelect.options[i].text.toLowerCase().slice(0, 10))) {
+            claimCategorySelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
     claimModal.classList.add('active');
   }
 
@@ -509,6 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const claimantEmail = document.getElementById('claimEmail').value.trim();
     const claimantPhone = document.getElementById('claimPhone').value.trim();
     const claimantRole = document.getElementById('claimRole').value;
+    const claimantCategory = claimCategorySelect ? (claimCategorySelect.value || 'Unspecified / Needs Classification') : 'Unspecified';
     const claimantPackage = claimPackageSelect ? claimPackageSelect.options[claimPackageSelect.selectedIndex].text : 'Standard Claim';
     const item = state.selectedItem;
 
@@ -522,6 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `Entity / Name: ${item.name || item.full_name}\n` +
       `ABN: ${item.abn}\n` +
       `Portal: ${state.activePortal}\n` +
+      `Confirmed Industry / ANZSIC: ${claimantCategory}\n` +
       `Selected Package: ${claimantPackage}\n` +
       `Claimant: ${claimantName}\n` +
       `Email: ${claimantEmail}\n` +
