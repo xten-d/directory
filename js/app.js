@@ -294,7 +294,11 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <div class="entity-meta-row">
-            <span class="abn-tag" title="ATO Checksum Modulo-89 Verified">ABN ${formatABN(item.abn)}</span>
+            ${item.abn ? `
+              <span class="abn-tag" title="ATO Checksum Modulo-89 Verified">ABN ${formatABN(item.abn)}</span>
+            ` : `
+              <span class="abn-tag" style="background: #EDE9FE; color: #5B21B6;" title="Community Group / Non-ABN Association">🏛️ ${escapeHTML(item.association_number || 'Community Society')}</span>
+            `}
             <span class="meta-pill">📍 ${escapeHTML(location)}</span>
             ${categoryTag ? `<span class="meta-pill">🏷️ ${escapeHTML(categoryTag)}</span>` : ''}
           </div>
@@ -364,11 +368,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsHTML = `
       ${videoBoxHTML}
       <div class="detail-grid">
-        <div class="detail-label">ABN</div>
-        <div class="detail-value">
-          <span class="abn-tag">${formatABN(item.abn)}</span>
-          <span style="color: var(--success); font-size: 0.8rem; margin-left: 0.5rem;">✔ ATO Modulo-89 Valid</span>
-        </div>
+        ${item.abn ? `
+          <div class="detail-label">ABN</div>
+          <div class="detail-value">
+            <span class="abn-tag">${formatABN(item.abn)}</span>
+            <span style="color: var(--success); font-size: 0.8rem; margin-left: 0.5rem;">✔ ATO Modulo-89 Valid</span>
+          </div>
+        ` : `
+          <div class="detail-label">Registry ID</div>
+          <div class="detail-value">
+            <span class="abn-tag" style="background: #EDE9FE; color: #5B21B6;">${escapeHTML(item.association_number || 'Community Club / Society')}</span>
+            <span style="color: #6366F1; font-size: 0.8rem; margin-left: 0.5rem;">✔ State Associations Act / Community Status</span>
+          </div>
+        `}
 
         ${item.acn ? `
           <div class="detail-label">ACN</div>
@@ -430,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.selectedItem = item;
     const name = item.name || item.full_name || '';
     document.getElementById('claimEntityName').textContent = name;
-    document.getElementById('claimEntityABN').textContent = formatABN(item.abn);
+    document.getElementById('claimEntityABN').textContent = item.abn ? formatABN(item.abn) : (item.association_number || 'Community Registry');
     if (preselectedPackage && claimPackageSelect) {
       claimPackageSelect.value = preselectedPackage;
     }
