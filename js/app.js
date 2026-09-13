@@ -794,13 +794,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnLoadSampleInvoice) {
     btnLoadSampleInvoice.addEventListener('click', () => {
-      verifyAbnInput.value = '38 602 365 346';
-      verifyNameInput.value = 'XTen Systems Pty Ltd';
+      verifyAbnInput.value = '40 006 247 016';
+      verifyNameInput.value = 'Regional Publishers (Western Victoria) Pty Limited';
       verifyTotalInput.value = '1650.00';
       verifyGstInput.value = '150.00';
-      verifyBsbInput.value = '086-006';
-      verifyAccountNameInput.value = 'XTen Systems Pty Ltd';
-      handleAbnInputCheck('38602365346');
+      verifyBsbInput.value = '063-000';
+      verifyAccountNameInput.value = 'Regional Publishers (Western Victoria) Pty Limited';
+      handleAbnInputCheck('40006247016');
       runInvoiceSafetyAudit();
     });
   }
