@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XTen National Register — Australian Companies, Entities & Professional Directory</title>
+  <meta name="description" content="Search over 3.6 million Australian registered commercial entities, ABNs, ACNs, licensed trades, and verified professional practitioners across Australia." />
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Structured Data Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "XTen National Business & Professional Register",
+    "url": "https://directory.xten.au",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://directory.xten.au/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ── 1. STICKY HEADER WITH SEGMENTED TWIN-PORTAL SWITCHER ── -->
+  <header class="site-header">
+    <div class="header-container">
+      <div class="logo-group">
+        <div class="logo-icon">X</div>
+        <div>
+          <span>XTen</span><span style="color: var(--primary);">.Register</span>
+        </div>
+        <span class="logo-badge" id="portalName">Commercial Directory</span>
+      </div>
+
+      <!-- Segmented Twin-Portal Controller -->
+      <nav class="tab-switcher" aria-label="Portal Mode">
+        <button class="tab-btn active" id="tabCompanies" title="Commercial Entities & Pty Ltd Companies">
+          <span>🏢</span> Companies & Entities
+          <span class="badge">2.5M</span>
+        </button>
+        <button class="tab-btn" id="tabPeople" title="Sole Traders & Licensed Professionals">
+          <span>👤</span> People & Professionals
+          <span class="badge">1.16M</span>
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <a href="mailto:directory@xten.au?subject=Directory%20Support%20Enquiry" class="btn-secondary-sm">
+          ✉ Support
+        </a>
+        <a href="javascript:void(0)" onclick="alert('Verification Portal: Click \'Claim Profile\' on your listing to request domain ownership verification or email directory@xten.au.')" class="btn-secondary-sm" style="color: var(--primary); border-color: #BFDBFE;">
+          Claim Listing
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── 2. HERO SECTION ── -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-pill">
+        <span class="dot"></span>
+        <span id="portalStatPill">2.5M+ Registered Entities</span> · ABR ATO Verified
+      </div>
+      <h1 class="hero-title" id="heroTitle">
+        Official Australian <span class="highlight">Business Directory</span>
+      </h1>
+      <p class="hero-subtitle" id="heroSubtitle">
+        Explore 2.5 million verified Australian commercial entities, ABN registrations, corporate due diligence, and verified business contacts.
+      </p>
+
+      <!-- ── INTERACTIVE SEARCH CARD ── -->
+      <div class="search-card">
+        <form class="search-inputs" id="searchForm">
+          <div class="input-field">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            <input type="text" id="searchInput" placeholder="Search by company name, trading name, ABN, ACN, or suburb..." autocomplete="off" />
+          </div>
+
+          <div class="input-field">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <select id="stateSelect" aria-label="Select State">
+              <option value="">All States & Terr.</option>
+              <option value="NSW">NSW — New South Wales</option>
+              <option value="VIC">VIC — Victoria</option>
+              <option value="QLD">QLD — Queensland</option>
+              <option value="WA">WA — Western Australia</option>
+              <option value="SA">SA — South Australia</option>
+              <option value="TAS">TAS — Tasmania</option>
+              <option value="ACT">ACT — Australian Capital Terr.</option>
+              <option value="NT">NT — Northern Territory</option>
+            </select>
+          </div>
+
+          <div class="input-field">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>
+            </span>
+            <select id="categorySelect" aria-label="Select Industry Category">
+              <option value="">All Industries</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn-search" id="btnSearch">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span>Search</span>
+          </button>
+        </form>
+
+        <div class="search-filters">
+          <div class="filter-tags">
+            <span style="font-weight: 600; margin-right: 0.25rem;">Popular:</span>
+            <span class="filter-tag" data-category="Medical">Specialist Medical</span>
+            <span class="filter-tag" data-category="Insurance">Insurance</span>
+            <span class="filter-tag" data-category="Electrical">Electrical Trades</span>
+            <span class="filter-tag" data-category="Publishing">Publishing</span>
+            <span class="filter-tag" data-category="Computer">IT & Software</span>
+          </div>
+
+          <label class="filter-checkbox">
+            <input type="checkbox" id="verifiedCheckbox" />
+            <span>Verified Contact Only</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Trust Strip -->
+      <div class="stats-strip">
+        <div class="stat-item">
+          <span>🛡️</span>
+          <span><strong>100% Modulo-89</strong> Checksum Validated</span>
+        </div>
+        <div class="stat-item">
+          <span>🏛️</span>
+          <span><strong>ABR & ASIC</strong> Data Synchronization</span>
+        </div>
+        <div class="stat-item">
+          <span>⚡</span>
+          <span><strong>Real-time</strong> Entity Status Resolution</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. MAIN RESULTS CONTAINER ── -->
+  <main class="main-content">
+    
+    <!-- Legal Privacy Strip (Visible in People mode) -->
+    <div class="privacy-banner" id="privacyBanner" style="display: none;">
+      <div>
+        <strong>Australian Privacy Act Notice:</strong> Profiles on <code>people.xten.au</code> index public Australian professional registration data. Personal emails are masked to protect sole traders and practitioners.
+      </div>
+      <a href="javascript:void(0)" id="btnLaunchOptout" class="link-action">Privacy Opt-Out / Takedown Request →</a>
+    </div>
+
+    <div class="section-header">
+      <div class="results-count" id="resultsCount">
+        Showing <strong>8</strong> companies
+      </div>
+
+      <div class="sort-group">
+        <label for="sortSelect">Sort by:</label>
+        <select id="sortSelect" class="sort-select">
+          <option value="views">Most Active / Views</option>
+          <option value="name">Alphabetical (A-Z)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="cards-grid" id="resultsContainer">
+      <!-- Populated dynamically by app.js -->
+    </div>
+  </main>
+
+  <!-- ── 4. PROFILE DETAILS MODAL ── -->
+  <div class="modal-overlay" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="modalProfileTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="modalProfileTitle">Profile Details</h2>
+          <div id="modalProfileBadge" style="margin-top: 4px;"></div>
+        </div>
+        <button class="btn-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modalProfileDetails">
+        <!-- Injected dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-card-action btn-modal-dismiss">Close</button>
+        <button class="btn-card-action btn-card-claim" id="btnModalLaunchClaim">Claim This Listing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. CLAIM PROFILE MODAL ── -->
+  <div class="modal-overlay" id="claimModal" role="dialog" aria-modal="true" aria-labelledby="claimModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="claimModalTitle">Claim & Verify Profile</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+            Target: <strong id="claimEntityName">Entity</strong> (<span id="claimEntityABN">ABN</span>)
+          </p>
+        </div>
+        <button class="btn-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="claimForm">
+        <div class="modal-body">
+          <div style="background: var(--primary-light); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid #BFDBFE; font-size: 0.85rem; color: #1E40AF; margin-bottom: 1.25rem;">
+            Claiming gives you full control of your public business profile, analytics telemetry, verified badge, and direct lead messaging.
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="claimName">Your Full Name *</label>
+            <input type="text" id="claimName" class="form-control" placeholder="e.g. Jane Smith" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="claimEmail">Official Business Email *</label>
+            <input type="email" id="claimEmail" class="form-control" placeholder="name@yourcompany.com.au" required />
+            <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 2px;">Domain match verification tokens are issued to company email addresses.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="claimPhone">Direct Contact Phone</label>
+            <input type="tel" id="claimPhone" class="form-control" placeholder="0412 345 678" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="claimRole">Your Role in the Organization *</label>
+            <select id="claimRole" class="form-control" required>
+              <option value="Director / Principal">Director / Principal / Owner</option>
+              <option value="Practice Manager">Practice Manager / General Manager</option>
+              <option value="Marketing & Operations">Marketing / Operations Lead</option>
+              <option value="Authorised Agent">Authorised Representative / Accountant</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-card-action btn-modal-dismiss">Cancel</button>
+          <button type="submit" class="btn-search">Submit Verification Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── 6. PRIVACY OPT-OUT MODAL ── -->
+  <div class="modal-overlay" id="optoutModal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Privacy Act Takedown Request</h2>
+          <p style="font-size: 0.82rem; color: var(--text-muted);">Australian Privacy Principles (APP) Compliance</p>
+        </div>
+        <button class="btn-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="optoutForm">
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">
+            If you are an individual practitioner or sole trader listed on <code>people.xten.au</code> and wish to suppress your listing from public search indexing, submit your ABN below for immediate processing.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" for="optoutABN">11-Digit ABN to Suppress *</label>
+            <input type="text" id="optoutABN" class="form-control" placeholder="e.g. 27 914 471 446" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="optoutEmail">Contact Email for Confirmation *</label>
+            <input type="email" id="optoutEmail" class="form-control" placeholder="you@domain.com.au" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="optoutReason">Reason (Optional)</label>
+            <textarea id="optoutReason" class="form-control" rows="3" placeholder="e.g. Cessation of clinical practice / Privacy preference"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-card-action btn-modal-dismiss">Cancel</button>
+          <button type="submit" class="btn-search" style="background: #DC2626;">Submit Suppression Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── 7. FOOTER ── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <div class="logo-group" style="margin-bottom: 0.85rem;">
+          <div class="logo-icon">X</div>
+          <span>XTen</span><span style="color: var(--primary);">.Register</span>
+        </div>
+        <p style="line-height: 1.5; margin-bottom: 1rem;">
+          Australia's open programmatic business registry and professional directory. Pre-populating profiles for 2.5M commercial entities and 1.16M professionals.
+        </p>
+        <p style="font-size: 0.8rem; color: var(--text-light);">
+          Inquiries & Data Verification: <a href="mailto:directory@xten.au" style="color: var(--primary); font-weight: 600;">directory@xten.au</a>
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Portals</h4>
+        <ul>
+          <li><a href="javascript:void(0)" onclick="document.getElementById('tabCompanies').click()">Companies & Entities</a></li>
+          <li><a href="javascript:void(0)" onclick="document.getElementById('tabPeople').click()">People & Practitioners</a></li>
+          <li><a href="mailto:directory@xten.au?subject=Claim%20Inquiry">Claim Profile</a></li>
+          <li><a href="mailto:directory@xten.au?subject=API%20Access">Data API Access</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Compliance</h4>
+        <ul>
+          <li><a href="javascript:void(0)" onclick="document.getElementById('optoutModal').classList.add('active')">Privacy Act Opt-Out</a></li>
+          <li><a href="https://abr.business.gov.au/" target="_blank" rel="noopener">ABR Verification ↗</a></li>
+          <li><a href="https://asic.gov.au/" target="_blank" rel="noopener">ASIC Register ↗</a></li>
+          <li><a href="mailto:directory@xten.au">Data Corrections</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>About XTen</h4>
+        <p style="line-height: 1.5; margin-bottom: 0.75rem;">
+          Operated by XTen Systems. Self-hosted modular software, compliance verification, and high-performance business applications.
+        </p>
+        <p style="font-weight: 600; color: var(--text-main);">
+          Perth, Western Australia
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>
+        &copy; 2026 XTen Systems Pty Ltd (ABN 38 602 365 346). All rights reserved.
+      </div>
+      <div>
+        Statutory data sourced from Commonwealth of Australia open registries under CC-BY 3.0 AU.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
