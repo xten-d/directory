@@ -1076,7 +1076,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderBadgePreview() {
-    const item = state.selectedItem || DIRECTORY_DATA.companies[0];
+    // openBadgeModal() always sets selectedItem first, so this fallback
+    // shouldn't be reachable in practice — kept as a safety net, but
+    // deliberately generic rather than defaulting to XTen's own record.
+    const item = state.selectedItem || { name: 'Your Business Name', abn: '00000000000' };
     const svgCode = generateTrustBadgeSVG(item, state.badgeStyle);
     badgePreviewBox.innerHTML = svgCode;
 
