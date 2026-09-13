@@ -1401,6 +1401,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const claimantPhone = document.getElementById('claimPhone').value.trim();
     const claimantRole = document.getElementById('claimRole').value;
     const claimantPackage = claimPackageSelect ? claimPackageSelect.value : 'standard';
+    const claimantCategory = claimCategorySelect ? claimCategorySelect.value : '';
     const item = state.selectedItem;
 
     if (!claimantName || !claimantEmail || !claimantRole || !item || !item.abn) return;
@@ -1419,7 +1420,8 @@ document.addEventListener('DOMContentLoaded', () => {
           email: claimantEmail,
           phone: claimantPhone,
           role: claimantRole,
-          package: claimantPackage
+          package: claimantPackage,
+          claim_category: claimantCategory
         })
       });
 
