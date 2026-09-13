@@ -38,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileModal = document.getElementById('profileModal');
   const claimModal = document.getElementById('claimModal');
   const optoutModal = document.getElementById('optoutModal');
+  const pricingModal = document.getElementById('pricingModal');
+  const btnOpenPricing = document.getElementById('btnOpenPricing');
+  const pricingGridContainer = document.getElementById('pricingGridContainer');
+  const claimPackageSelect = document.getElementById('claimPackage');
   const claimForm = document.getElementById('claimForm');
   const optoutForm = document.getElementById('optoutForm');
 
@@ -249,9 +253,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const subTitle = isCompany ? (item.trading_names ? item.trading_names[0] : '') : item.profession;
     const location = `${item.suburb} ${item.state} ${item.postcode}`;
     const categoryTag = isCompany ? item.anzsic_class : item.category;
+    const tierClass = item.tier === 'prominent' ? 'tier-prominent' : (item.tier === 'featured' ? 'tier-featured' : '');
 
     return `
-      <article class="entity-card" id="card-${item.id}">
+      <article class="entity-card ${tierClass}" id="card-${item.id}">
         <div>
           <div class="card-top">
             <div>
@@ -260,14 +265,31 @@ document.addEventListener('DOMContentLoaded', () => {
               </h3>
               ${subTitle ? `<div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">${escapeHTML(subTitle)}</div>` : ''}
             </div>
-            ${item.verified ? `
-              <span class="badge-verified" title="Verified Australian Registration">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Verified
-              </span>
-            ` : `
-              <span class="badge-unverified" title="Unclaimed Registry Listing">Unclaimed</span>
-            `}
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+              ${item.tier === 'prominent' ? `
+                <span class="badge-prominent" title="Prominent Listing — Guaranteed Top 3 Placement">
+                  ⭐ PROMINENT
+                </span>
+              ` : ''}
+              ${item.tier === 'featured' ? `
+                <span class="badge-featured" title="Featured Listing — Top of Category Ranking">
+                  ✨ FEATURED
+                </span>
+              ` : ''}
+              ${item.has_video ? `
+                <span class="badge-video btn-view-profile" data-id="${item.id}" title="Watch 30-Second Video Showcase">
+                  ▶ 30s Video
+                </span>
+              ` : ''}
+              ${item.verified ? `
+                <span class="badge-verified" title="Verified Australian Registration">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Verified
+                </span>
+              ` : `
+                <span class="badge-unverified" title="Unclaimed Registry Listing">Unclaimed</span>
+              `}
+            </div>
           </div>
 
           <div class="entity-meta-row">
@@ -302,11 +324,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const isCompany = state.activePortal === 'companies';
     
     document.getElementById('modalProfileTitle').textContent = isCompany ? item.name : item.full_name;
-    document.getElementById('modalProfileBadge').innerHTML = item.verified 
+    
+    let badgeHTML = '';
+    if (item.tier === 'prominent') {
+      badgeHTML += '<span class="badge-prominent" style="margin-right: 6px;">⭐ Prominent Listing</span>';
+    } else if (item.tier === 'featured') {
+      badgeHTML += '<span class="badge-featured" style="margin-right: 6px;">✨ Featured Listing</span>';
+    }
+    badgeHTML += item.verified 
       ? '<span class="badge-verified">✔ Verified Australian Entity</span>'
       : '<span class="badge-unverified">Unclaimed Registry Record</span>';
+    document.getElementById('modalProfileBadge').innerHTML = badgeHTML;
+
+    // Video Showcase Player Box
+    const videoBoxHTML = item.has_video ? `
+      <div class="video-showcase-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; color: #C084FC; text-transform: uppercase;">
+            🎥 30-Second Video Showcase
+          </span>
+          <span style="font-size: 0.75rem; color: #CBD5E1; background: #334155; padding: 2px 8px; border-radius: 10px;">
+            ⏱ ${item.video_duration || '0:30'} HD
+          </span>
+        </div>
+        <div class="video-player-screen" style="cursor: pointer;" onclick="alert('Playing 30-sec HD showcase video: \\'${escapeHTML(item.video_title || 'Authentic Business Introduction')}\\'');">
+          <div class="play-circle-btn" title="Play Video Showcase">▶</div>
+        </div>
+        <div class="video-meta-bar">
+          <span style="font-weight: 600; color: #F8FAFC;">${escapeHTML(item.video_title || 'Authentic Business Introduction')}</span>
+          <span style="color: #94A3B8;">Australian Edge CDN · Zero Ads</span>
+        </div>
+        <div class="video-progress">
+          <div class="video-progress-fill"></div>
+        </div>
+      </div>
+    ` : '';
 
     const detailsHTML = `
+      ${videoBoxHTML}
       <div class="detail-grid">
         <div class="detail-label">ABN</div>
         <div class="detail-value">
@@ -370,12 +425,59 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Claim Profile Modal
-  function openClaimModal(item) {
+  function openClaimModal(item, preselectedPackage) {
     state.selectedItem = item;
     const name = item.name || item.full_name || '';
     document.getElementById('claimEntityName').textContent = name;
     document.getElementById('claimEntityABN').textContent = formatABN(item.abn);
+    if (preselectedPackage && claimPackageSelect) {
+      claimPackageSelect.value = preselectedPackage;
+    }
     claimModal.classList.add('active');
+  }
+
+  // Render Pricing Modal
+  function renderPricingModal() {
+    if (!pricingGridContainer || typeof PURCHASABLE_FEATURES === 'undefined') return;
+    pricingGridContainer.innerHTML = PURCHASABLE_FEATURES.map(feat => `
+      <div class="pricing-card ${feat.popular ? 'popular' : ''}">
+        ${feat.badge ? `<div class="plan-badge-top ${feat.badge_color}">${feat.badge}</div>` : ''}
+        <div class="plan-header">
+          <h3 class="plan-name">${escapeHTML(feat.name)}</h3>
+          <p class="plan-tagline">${escapeHTML(feat.tagline)}</p>
+        </div>
+        <div class="plan-pricing-block">
+          <div class="plan-price-num">${feat.price_monthly}</div>
+          <div class="plan-price-period">${feat.price_period}</div>
+        </div>
+        <ul class="plan-features-list">
+          ${feat.features.map(f => `<li><span class="check">✔</span> <span>${escapeHTML(f)}</span></li>`).join('')}
+        </ul>
+        <button class="btn-select-plan ${feat.popular ? 'primary' : ''}" data-plan="${feat.id}">
+          Select ${escapeHTML(feat.name)}
+        </button>
+      </div>
+    `).join('');
+
+    // Attach click listeners to plan buttons
+    pricingGridContainer.querySelectorAll('.btn-select-plan').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const planId = btn.dataset.plan;
+        pricingModal.classList.remove('active');
+        
+        const currentData = state.activePortal === 'companies' ? DIRECTORY_DATA.companies : DIRECTORY_DATA.people;
+        const targetItem = state.selectedItem || currentData[0];
+        openClaimModal(targetItem, planId);
+      });
+    });
+  }
+
+  // Wire Header Upgrade & Pricing Button
+  if (btnOpenPricing) {
+    btnOpenPricing.addEventListener('click', () => {
+      renderPricingModal();
+      pricingModal.classList.add('active');
+    });
   }
 
   // Modal Closers
@@ -384,6 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
       profileModal.classList.remove('active');
       claimModal.classList.remove('active');
       optoutModal.classList.remove('active');
+      if (pricingModal) pricingModal.classList.remove('active');
     });
   });
 
@@ -406,18 +509,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const claimantEmail = document.getElementById('claimEmail').value.trim();
     const claimantPhone = document.getElementById('claimPhone').value.trim();
     const claimantRole = document.getElementById('claimRole').value;
+    const claimantPackage = claimPackageSelect ? claimPackageSelect.options[claimPackageSelect.selectedIndex].text : 'Standard Claim';
     const item = state.selectedItem;
 
     if (!claimantName || !claimantEmail) return;
 
     // Mailto fallback or backend webhook
-    const subject = encodeURIComponent(`Profile Claim Request: ${item.name || item.full_name} (ABN ${item.abn})`);
+    const subject = encodeURIComponent(`Profile Claim & Upgrade Request: ${item.name || item.full_name} (ABN ${item.abn})`);
     const body = encodeURIComponent(
-      `Claim Request Details:\n` +
-      `------------------------\n` +
+      `Claim & Upgrade Request Details:\n` +
+      `--------------------------------\n` +
       `Entity / Name: ${item.name || item.full_name}\n` +
       `ABN: ${item.abn}\n` +
       `Portal: ${state.activePortal}\n` +
+      `Selected Package: ${claimantPackage}\n` +
       `Claimant: ${claimantName}\n` +
       `Email: ${claimantEmail}\n` +
       `Phone: ${claimantPhone}\n` +
@@ -425,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `Submitted via XTen National Portal.`
     );
 
-    alert(`Thank you, ${claimantName}! Your claim verification request for ABN ${formatABN(item.abn)} has been registered. Our operations team at directory@xten.au will send your verification token.`);
+    alert(`Thank you, ${claimantName}! Your claim and upgrade request for "${item.name || item.full_name}" [${claimantPackage}] has been registered. Our onboarding team at directory@xten.au will confirm setup.`);
     claimModal.classList.remove('active');
     window.location.href = `mailto:directory@xten.au?subject=${subject}&body=${body}`;
   });

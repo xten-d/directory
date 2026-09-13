@@ -3,6 +3,64 @@
  * Synchronized with Australian Business Register (ABR) & ASIC Data Model
  */
 
+const PURCHASABLE_FEATURES = [
+  {
+    id: "featured",
+    name: "Featured Listing",
+    price_monthly: "$29",
+    price_period: "per month (or $290/yr)",
+    badge: "FEATURED",
+    badge_color: "amber",
+    popular: false,
+    tagline: "Top of category ranking & verified credibility for local businesses.",
+    features: [
+      "Priority placement above standard registry listings in your category & suburb",
+      "Distinctive golden 'Featured Business' card highlight",
+      "Official 'Verified Entity' trust seal & ATO Modulo-89 certificate",
+      "Direct link to your company website & social channels (SEO Dofollow)",
+      "Direct telephone click-to-call & enquiry button",
+      "Monthly visitor search & impression telemetry report"
+    ]
+  },
+  {
+    id: "prominent",
+    name: "Prominent Listing",
+    price_monthly: "$59",
+    price_period: "per month (or $590/yr)",
+    badge: "MOST POPULAR",
+    badge_color: "blue",
+    popular: true,
+    tagline: "Maximum visibility, search dominance, and exclusive lead capture.",
+    features: [
+      "Guaranteed Top 3 placement across your entire ANZSIC division & postcode",
+      "Competitor ad exclusion (no rival businesses advertised on your profile)",
+      "Direct Lead Enquiry Form delivering customer requests straight to your inbox",
+      "High-contrast card highlight with animated spotlight badge",
+      "Full business description, products, operating hours & team directory",
+      "Priority inclusion in regional buyer email digests",
+      "Includes all features of the Featured tier"
+    ]
+  },
+  {
+    id: "video_showcase",
+    name: "30-Sec Video Showcase",
+    price_monthly: "$19",
+    price_period: "per month (Add-on or $39 standalone)",
+    badge: "3X ENGAGEMENT",
+    badge_color: "purple",
+    popular: false,
+    tagline: "Engage visitors with an authentic 30-second video introduction.",
+    features: [
+      "Up to 30-second HD video embedded directly on your public profile",
+      "Video play badge in search results (proven 3x higher click-through rate)",
+      "Showcase your facilities, clinical practice, workshop, or team message",
+      "Custom video thumbnail, call-to-action button, and captions support",
+      "Hosted on high-speed Australian edge CDN with zero competitor ads",
+      "Easily updated anytime via your verified owner dashboard"
+    ]
+  }
+];
+
 const DIRECTORY_DATA = {
   companies: [
     {
@@ -27,6 +85,10 @@ const DIRECTORY_DATA = {
       website: "https://www.adelaidepaediatrics.com.au",
       verified: true,
       claimed: true,
+      tier: "prominent",
+      has_video: true,
+      video_duration: "0:28",
+      video_title: "Meet Our Multi-Disciplinary Paediatric Clinical Team",
       views_this_month: 482,
       description: "Comprehensive multi-disciplinary paediatric healthcare clinic providing specialist consultations, developmental assessments, and allied health support across South Australia."
     },
@@ -177,6 +239,7 @@ const DIRECTORY_DATA = {
       website: "https://xten.au",
       verified: true,
       claimed: true,
+      tier: "featured",
       views_this_month: 940,
       description: "Specialist Australian software systems engineering company providing secure modular business application platforms, disaster recovery audits, and autonomous support agents."
     },
@@ -226,6 +289,7 @@ const DIRECTORY_DATA = {
       email_proxy: "l.freer@adelaidepaediatrics.com.au",
       verified: true,
       claimed: true,
+      tier: "featured",
       views_this_month: 312,
       bio: "Paediatric and adolescent clinical dietitian specialising in food allergies, paediatric growth faltering, enteral nutrition, and gut microbiome health."
     },
@@ -268,6 +332,10 @@ const DIRECTORY_DATA = {
       email_proxy: "reception@adelaidepaediatrics.com.au",
       verified: true,
       claimed: true,
+      tier: "prominent",
+      has_video: true,
+      video_duration: "0:30",
+      video_title: "Paediatric Developmental Care & Clinical Services Tour",
       views_this_month: 624,
       bio: "General and developmental paediatrician with special interest in ADHD, autism spectrum disorders, neonatal medicine, and paediatric chronic illness."
     },

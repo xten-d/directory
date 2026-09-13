@@ -55,11 +55,11 @@
       </nav>
 
       <div class="header-actions">
+        <button class="btn-secondary-sm" id="btnOpenPricing" style="color: var(--primary); border-color: #BFDBFE; font-weight: 700;">
+          ⭐ Upgrade & Pricing
+        </button>
         <a href="mailto:directory@xten.au?subject=Directory%20Support%20Enquiry" class="btn-secondary-sm">
           ✉ Support
-        </a>
-        <a href="javascript:void(0)" onclick="alert('Verification Portal: Click \'Claim Profile\' on your listing to request domain ownership verification or email directory@xten.au.')" class="btn-secondary-sm" style="color: var(--primary); border-color: #BFDBFE;">
-          Claim Listing
         </a>
       </div>
     </div>
@@ -250,6 +250,18 @@
               <option value="Authorised Agent">Authorised Representative / Accountant</option>
             </select>
           </div>
+
+          <div class="form-group">
+            <label class="form-label" for="claimPackage">Select Listing Package / Upgrade</label>
+            <select id="claimPackage" class="form-control">
+              <option value="standard">Standard Registry Claim (Free / $0)</option>
+              <option value="featured">Featured Listing ($29/mo or $290/yr) — Priority placement & gold badge</option>
+              <option value="prominent" selected>Prominent Listing ($59/mo or $590/yr) — Top 3 rank & lead capture</option>
+              <option value="video_showcase">30-Sec Video Showcase Add-on (+$19/mo)</option>
+              <option value="bundle_prominent_video">Prominent + Video Bundle ($75/mo — Save 10%)</option>
+            </select>
+            <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 3px;">Includes 30-day money-back guarantee. No lock-in contracts.</small>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-card-action btn-modal-dismiss">Cancel</button>
@@ -298,7 +310,33 @@
     </div>
   </div>
 
-  <!-- ── 7. FOOTER ── -->
+  <!-- ── 7. PRICING & UPGRADES MODAL ── -->
+  <div class="modal-overlay" id="pricingModal" role="dialog" aria-modal="true" aria-labelledby="pricingModalTitle">
+    <div class="modal-card" style="max-width: 960px; width: 95%;">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="pricingModalTitle">Listing Upgrades & Growth Packages</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+            Supercharge your Australian registry listing with verified credibility, search priority, and direct customer leads.
+          </p>
+        </div>
+        <button class="btn-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding-top: 0.5rem;">
+        <div class="pricing-grid" id="pricingGridContainer">
+          <!-- Rendered dynamically from PURCHASABLE_FEATURES in app.js -->
+        </div>
+      </div>
+      <div class="modal-footer" style="background: var(--bg-subtle); display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-muted); flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          🛡️ <strong>30-day money-back guarantee</strong> · No lock-in contracts · Invoiced in AUD with Tax Invoice
+        </div>
+        <button class="btn-card-action btn-modal-dismiss">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. FOOTER ── -->
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-col">
