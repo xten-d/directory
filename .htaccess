@@ -21,6 +21,18 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)/$ /$1 [L,R=301]
 
+    # Clean canonical URLs (MAA-20260913-006 deliverable 5). Each maps a
+    # crawlable path onto the query params js/app.js already reads on load
+    # (tool/verify/state/category); `suburb` is passed through for the
+    # frontend to pick up when it supports it. Internal rewrites, not
+    # redirects, so the clean URL stays in the address bar. QSA keeps any
+    # extra query params the caller appended.
+    RewriteRule ^verify/?$ index.html?tool=verify [QSA,L]
+    RewriteRule ^verify/([0-9]{11})/?$ index.html?verify=$1 [QSA,L]
+    RewriteRule ^location/([A-Za-z]{2,3})/?$ index.html?state=$1 [QSA,L]
+    RewriteRule ^location/([A-Za-z]{2,3})/([^/]+)/?$ index.html?state=$1&suburb=$2 [QSA,L]
+    RewriteRule ^category/([^/]+)/?$ index.html?category=$1 [QSA,L]
+
     # Handle Clean URLs (fallback to index.html for client-side routing)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
