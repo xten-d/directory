@@ -64,7 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
       entity_type: r.entity_type,
       claimed: !!r.is_claimed,
       verified: !!r.is_claimed,
-      tier: r.claim_tier || null,
+      // Badge tier: bundle_* and *_y package keys collapse to the tier they
+      // contain (the card only knows 'prominent' / 'featured').
+      tier: (function (t) {
+        if (!t) return null;
+        if (/prominent/.test(t)) return 'prominent';
+        if (/featured/.test(t)) return 'featured';
+        return t;
+      })(r.claim_tier),
       // V6 backend: a claimed listing's spotlight video (customer-supplied
       // or produced under DI-08). Absent until the backend says so.
       video_url: r.video_url || null,
