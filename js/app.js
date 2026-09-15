@@ -319,15 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
       heroSubtitleEl.textContent = 'Explore 2.5 million verified Australian commercial entities, ABN registrations, corporate due diligence, and verified business contacts.';
       searchInput.placeholder = 'Search by company name, trading name, ABN, ACN, or suburb...';
       privacyBanner.style.display = 'none';
-      populateCategories([
-        'All Industries',
-        'Specialist Medical Services',
-        'General Insurance',
-        'Newspaper Publishing',
-        'Computer System Design',
-        'Electrical Services',
-        'Software Publishing',
-        'Sporting and Physical Recreation Clubs'
+      populateCategories(typeof EXPANDED_INDUSTRIES !== 'undefined' ? EXPANDED_INDUSTRIES : [
+        'All Industries'
       ]);
     } else {
       tabPeople.classList.add('active');
@@ -338,22 +331,52 @@ document.addEventListener('DOMContentLoaded', () => {
       heroSubtitleEl.textContent = 'Search 1.16 million licensed Australian sole traders, allied health specialists, licensed trades, consultants, and independent practitioners.';
       searchInput.placeholder = 'Search by practitioner name, profession, license, or suburb...';
       privacyBanner.style.display = 'flex';
-      populateCategories([
-        'All Professions',
-        'Specialist Paediatric Medicine',
-        'Clinical Audiology',
-        'Commercial Architectural Photography',
-        'Licensed Electrical Contractor',
-        'Allied Health Services'
+      populateCategories(typeof EXPANDED_PROFESSIONS !== 'undefined' ? EXPANDED_PROFESSIONS : [
+        'All Professions'
       ]);
     }
     render();
   }
 
   function populateCategories(cats) {
-    categorySelect.innerHTML = cats.map((c, idx) => 
-      `<option value="${idx === 0 ? '' : c}">${c}</option>`
-    ).join('');
+    if (!categorySelect) return;
+    const defaultLabel = cats[0] || (state.activePortal === 'companies' ? 'All Industries' : 'All Professions');
+    let html = `<option value="">${escapeHTML(defaultLabel)}</option>`;
+
+    const groups = {};
+    const ungrouped = [];
+
+    for (let i = 1; i < cats.length; i++) {
+      const item = cats[i];
+      const colonIdx = item.indexOf(': ');
+      if (colonIdx !== -1) {
+        const group = item.slice(0, colonIdx).trim();
+        const label = item.slice(colonIdx + 2).trim();
+        if (!groups[group]) groups[group] = [];
+        groups[group].push({ value: item, label: label });
+      } else {
+        ungrouped.push({ value: item, label: item });
+      }
+    }
+
+    if (Object.keys(groups).length > 0) {
+      for (const [groupName, items] of Object.entries(groups)) {
+        html += `<optgroup label="${escapeHTML(groupName)}">`;
+        for (const it of items) {
+          html += `<option value="${escapeHTML(it.value)}">${escapeHTML(it.label)}</option>`;
+        }
+        html += `</optgroup>`;
+      }
+      for (const it of ungrouped) {
+        html += `<option value="${escapeHTML(it.value)}">${escapeHTML(it.label)}</option>`;
+      }
+    } else {
+      for (let i = 1; i < cats.length; i++) {
+        html += `<option value="${escapeHTML(cats[i])}">${escapeHTML(cats[i])}</option>`;
+      }
+    }
+
+    categorySelect.innerHTML = html;
     state.selectedCategory = '';
   }
 
@@ -437,11 +460,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams({ portal, limit: '50' });
     if (state.searchQuery) params.set('q', state.searchQuery);
     if (state.selectedState) params.set('state', state.selectedState);
-    // anzsic_div: the live API accepts and echoes this but doesn't filter
-    // on it yet (abn_lookup carries no ANZSIC column server-side) — sent
-    // anyway so it's a no-op today, not silently dropped, and starts
-    // working the moment that gap closes.
-    if (state.selectedCategory) params.set('anzsic_div', state.selectedCategory);
+    if (state.selectedCategory) {
+      params.set('category', state.selectedCategory);
+      params.set('anzsic_div', state.selectedCategory);
+    }
 
     const requestId = ++searchRequestSeq;
 
