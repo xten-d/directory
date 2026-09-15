@@ -64,7 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
       entity_type: r.entity_type,
       claimed: !!r.is_claimed,
       verified: !!r.is_claimed,
-      tier: r.claim_tier || null
+      tier: r.claim_tier || null,
+      // V6 backend: a claimed listing's spotlight video (customer-supplied
+      // or produced under DI-08). Absent until the backend says so.
+      video_url: r.video_url || null,
+      has_video: !!r.video_url
     };
 
     if (full) {
@@ -549,6 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // hiding every result.
     if (state.activeFacet === 'contact') items = items.filter(i => i.verified); // only a claimed profile has a contact route today
     if (state.activeFacet === 'featured') items = items.filter(i => i.tier === 'featured' || i.tier === 'prominent');
+    if (state.activeFacet === 'video') items = items.filter(i => i.has_video);
 
     items.sort((a, b) => {
       if (a.tier === 'prominent' && b.tier !== 'prominent') return -1;
@@ -771,7 +776,10 @@ document.addEventListener('DOMContentLoaded', () => {
       : '<span class="badge-unverified">Unclaimed Registry Record</span>';
     document.getElementById('modalProfileBadge').innerHTML = badgeHTML;
 
-    const detailsHTML = `
+    const videoHTML = item.video_url
+      ? `<div style="margin-bottom:1rem;">${videoEmbedHTML(item.video_url)}<div style="font-size:0.75rem;color:var(--text-light);margin-top:4px;">▶ 30-second video showcase</div></div>`
+      : '';
+    const detailsHTML = `${videoHTML}
       <div class="detail-grid">
         ${item.abn ? `
           <div class="detail-label">ABN</div>
@@ -1507,6 +1515,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const claimantRole = document.getElementById('claimRole').value;
     const claimantPackage = claimPackageSelect ? claimPackageSelect.value : 'standard';
     const claimantCategory = claimCategorySelect ? claimCategorySelect.value : '';
+    const claimVideoInput = document.getElementById('claimVideoUrl');
+    const claimantVideoUrl = claimVideoInput ? claimVideoInput.value.trim() : '';
     const item = state.selectedItem;
 
     if (!claimantName || !claimantEmail || !claimantRole || !item || !item.abn) return;
@@ -1526,7 +1536,8 @@ document.addEventListener('DOMContentLoaded', () => {
           phone: claimantPhone,
           role: claimantRole,
           package: claimantPackage,
-          claim_category: claimantCategory
+          claim_category: claimantCategory,
+          video_url: claimantVideoUrl || undefined
         })
       });
 
@@ -1545,6 +1556,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Video link field only makes sense for a video-inclusive package.
+  const VIDEO_PACKAGES = ['video_showcase', 'video_standalone', 'bundle_prominent_video', 'bundle_prominent_video_y'];
+  function syncClaimVideoField() {
+    const group = document.getElementById('claimVideoGroup');
+    if (!group || !claimPackageSelect) return;
+    group.hidden = !VIDEO_PACKAGES.includes(claimPackageSelect.value);
+  }
+  if (claimPackageSelect) claimPackageSelect.addEventListener('change', syncClaimVideoField);
+
+  // Embeddable player markup for a listing's video: YouTube/Vimeo → iframe,
+  // anything else (an https .mp4/.webm) → native <video>.
+  function videoEmbedHTML(url) {
+    if (!url) return '';
+    let m;
+    if ((m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/))) {
+      return `<iframe src="https://www.youtube.com/embed/${m[1]}" title="30-second video showcase" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;border-radius:8px;"></iframe>`;
+    }
+    if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/))) {
+      return `<iframe src="https://player.vimeo.com/video/${m[1]}" title="30-second video showcase" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;border-radius:8px;"></iframe>`;
+    }
+    const safe = String(url).replace(/"/g, '&quot;');
+    return `<video controls preload="metadata" playsinline style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;"><source src="${safe}" type="video/mp4">Your browser cannot play this video. <a href="${safe}">Open it directly.</a></video>`;
+  }
+
   // Claim Profile Modal
   function openClaimModal(item, preselectedPackage) {
     state.selectedItem = item;
@@ -1554,6 +1589,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (preselectedPackage && claimPackageSelect) {
       claimPackageSelect.value = preselectedPackage;
     }
+    const claimVideoInput = document.getElementById('claimVideoUrl');
+    if (claimVideoInput) claimVideoInput.value = '';
+    syncClaimVideoField();
     if (claimCategorySelect) {
       claimCategorySelect.value = '';
       const catText = (item.anzsic_class || item.category || '').toLowerCase();
