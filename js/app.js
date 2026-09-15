@@ -1545,6 +1545,11 @@ document.addEventListener('DOMContentLoaded', () => {
       claimForm.reset();
 
       if (result.status === 'pending_payment' && result.checkout_url) {
+        if (result.production_checkout_url) {
+          // Two orders: the subscription and the one-off production fee. Show
+          // the second link before leaving for the first payment page.
+          alert(`Two payments were raised for you:\n\n1. Listing subscription — order ${result.order_ref || ''} (paying now)\n2. Video production — order ${result.production_order_ref || ''}: ${result.production_checkout_url}\n\nBoth links are also emailed to you.`);
+        }
         window.location.href = result.checkout_url;
       } else {
         alert(result.message || 'Check your email for a verification link (expires in 48 hours).');
@@ -1557,6 +1562,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Video link field only makes sense for a video-inclusive package.
+  // Packages where the customer supplies their own video link (production
+  // packages have no link to give — we make the video, DI-08).
   const VIDEO_PACKAGES = ['video_showcase', 'video_standalone', 'bundle_prominent_video', 'bundle_prominent_video_y'];
   function syncClaimVideoField() {
     const group = document.getElementById('claimVideoGroup');
