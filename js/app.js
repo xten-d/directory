@@ -16,7 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sortBy: 'views',
     selectedItem: null,
     badgeStyle: 'dark',
-    currentResults: []
+    currentResults: [],
+    page: 1,          // 1-based; sent to the API, reset when the search changes
+    pageSize: 50,     // API MAX_LIMIT
+    lastQuerySig: ''  // portal|q|state|category — a change resets page to 1
   };
 
   // Live backend (directory-module, xtenstack/internal) — public,
@@ -446,6 +449,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Prev / Page x of y / Next under the results grid. Created on first
+  // use so index.html needs no new markup. A capped total (category
+  // searches) still pages up to the cap — Next stays enabled while the
+  // API returned a full page.
+  let paginationBar = null;
+
+  function renderPagination(info) {
+    if (!paginationBar) {
+      paginationBar = document.createElement('div');
+      paginationBar.id = 'paginationBar';
+      paginationBar.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:1rem;margin:1.5rem 0 0.5rem;';
+      resultsContainer.insertAdjacentElement('afterend', paginationBar);
+    }
+
+    if (!info || info.total === null || info.total <= state.pageSize && state.page === 1) {
+      paginationBar.innerHTML = '';
+      return;
+    }
+
+    const lastPage = Math.max(1, Math.ceil(info.total / state.pageSize));
+    const hasNext = state.page < lastPage || (info.capped && info.pageCount === state.pageSize);
+    const hasPrev = state.page > 1;
+    const disabled = 'opacity:0.45;pointer-events:none;';
+
+    paginationBar.innerHTML = `
+      <button type="button" class="btn-secondary-sm" data-page="prev" style="${hasPrev ? '' : disabled}">← Previous</button>
+      <span style="color: var(--text-muted); font-size: 0.9rem;">Page <strong>${state.page.toLocaleString()}</strong> of ${lastPage.toLocaleString()}${info.capped ? '+' : ''}</span>
+      <button type="button" class="btn-secondary-sm" data-page="next" style="${hasNext ? '' : disabled}">Next →</button>
+    `;
+
+    paginationBar.querySelectorAll('button[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.page = btn.dataset.page === 'next' ? state.page + 1 : Math.max(1, state.page - 1);
+        fetchAndRenderResults();
+        resultsCountEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
   // Render Result Cards — debounced trigger; the real fetch+DOM update
   // is fetchAndRenderResults() below. render() itself stays synchronous
   // so every existing call site (search input, filters, sort, portal
@@ -457,7 +499,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchAndRenderResults() {
     const portal = state.activePortal === 'companies' ? 'entity' : 'person';
-    const params = new URLSearchParams({ portal, limit: '50' });
+
+    // Pagination (Travis, 2026-09-15): any change to what is being
+    // searched starts again at page 1; only the pager buttons move it.
+    const querySig = [portal, state.searchQuery, state.selectedState, state.selectedCategory].join('|');
+    if (querySig !== state.lastQuerySig) {
+      state.page = 1;
+      state.lastQuerySig = querySig;
+    }
+
+    const params = new URLSearchParams({ portal, limit: String(state.pageSize), page: String(state.page) });
     if (state.searchQuery) params.set('q', state.searchQuery);
     if (state.selectedState) params.set('state', state.selectedState);
     if (state.selectedCategory) {
@@ -484,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
       resultsCountEl.textContent = '';
+      renderPagination(null);
       return;
     }
 
@@ -507,7 +559,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.currentResults = items;
 
-    resultsCountEl.innerHTML = `Showing <strong>${items.length}</strong> ${state.activePortal === 'companies' ? 'verified companies' : 'registered practitioners'}${typeof data.total === 'number' ? ` of ${data.total.toLocaleString()}` : ''}`;
+    // "Showing 51–100 of 9,318,880" — real page window, not a fixed 50.
+    // The API caps `total` for category searches (total_capped), shown
+    // as "1,000+" rather than pretending it is exact.
+    const noun = state.activePortal === 'companies' ? 'verified companies' : 'registered practitioners';
+    const total = typeof data.total === 'number' ? data.total : null;
+    const pageStart = (state.page - 1) * state.pageSize + 1;
+    const pageEnd = pageStart + items.length - 1;
+    const totalLabel = total === null ? '' : ` of ${total.toLocaleString()}${data.total_capped ? '+' : ''}`;
+    resultsCountEl.innerHTML = items.length
+      ? `Showing <strong>${pageStart.toLocaleString()}–${pageEnd.toLocaleString()}</strong> ${noun}${totalLabel}`
+      : `Showing <strong>0</strong> ${noun}${totalLabel}`;
+    renderPagination({ total, capped: !!data.total_capped, pageCount: (data.results || []).length });
 
     if (items.length === 0) {
       resultsContainer.innerHTML = `
