@@ -155,7 +155,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Detect Subdomain or URL parameters on load
   const hostname = window.location.hostname.toLowerCase();
   const urlParams = new URLSearchParams(window.location.search);
-  
+
+  // Clean URLs (/verify, /verify/:abn, /location/:state/:suburb,
+  // /category/:x — MAA-20260913-006 deliverable 5) are served by
+  // .htaccess as *internal* rewrites onto index.html?…, so the query
+  // string the server appends never reaches window.location. Derive the
+  // same params from the path here; explicit query params still win.
+  const cleanPath = window.location.pathname.match(/^\/(verify|location|category)(?:\/([^/]+))?(?:\/([^/]+))?\/?$/);
+  if (cleanPath) {
+    const [, section, first, second] = cleanPath;
+    const dec = (v) => { try { return decodeURIComponent(v); } catch (e) { return v; } };
+    if (section === 'verify') {
+      if (first && !urlParams.has('verify')) urlParams.set('verify', dec(first));
+      if (!first && !urlParams.has('tool')) urlParams.set('tool', 'verify');
+    } else if (section === 'location') {
+      if (first && !urlParams.has('state')) urlParams.set('state', dec(first));
+      if (second && !urlParams.has('suburb')) urlParams.set('suburb', dec(second));
+    } else if (section === 'category' && first && !urlParams.has('category')) {
+      urlParams.set('category', dec(first));
+    }
+  }
+
   if (hostname.includes('people') || urlParams.get('portal') === 'people') {
     setPortal('people');
   } else {
