@@ -227,8 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
     (async () => {
       const abn = urlParams.get('abn').replace(/\s+/g, '');
       const portal = state.activePortal === 'companies' ? 'entity' : 'person';
+      // ?ref=<slug> arrives only on the profile link inside our claim
+      // emails; forwarding it lets the API log the open against that email
+      // (directory.link_visits kind 'profile'). Nothing else changes.
+      const ref = (urlParams.get('ref') || '').trim();
+      const refQuery = /^[0-9a-f]{8,32}$/.test(ref) ? `?ref=${encodeURIComponent(ref)}` : '';
       try {
-        const data = await apiFetch(`/${portal}/${abn}`);
+        const data = await apiFetch(`/${portal}/${abn}${refQuery}`);
         openProfileModal(mapApiItem(data[portal], true));
       } catch (err) {
         showToast(`Could not load ABN ${abn}: ${err.message}`);
