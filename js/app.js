@@ -232,11 +232,27 @@ document.addEventListener('DOMContentLoaded', () => {
       // (directory.link_visits kind 'profile'). Nothing else changes.
       const ref = (urlParams.get('ref') || '').trim();
       const refQuery = /^[0-9a-f]{8,32}$/.test(ref) ? `?ref=${encodeURIComponent(ref)}` : '';
-      try {
-        const data = await apiFetch(`/${portal}/${abn}${refQuery}`);
-        openProfileModal(mapApiItem(data[portal], true));
-      } catch (err) {
-        showToast(`Could not load ABN ${abn}: ${err.message}`);
+      // Try this host's portal first, then the other one: 1,207 DIR-CLAIM
+      // emails sent 16-22 Sep 2026 pointed sole traders at
+      // directory.xten.au/?abn= although their listing is on people.xten.au
+      // (fixed at the source in XTMK on 23 Sep). Falling through to the
+      // other portal makes those links work instead of toasting "Could not
+      // load ABN" — same setPortal() switch the slug handler below uses.
+      const portals = portal === 'entity' ? ['entity', 'person'] : ['person', 'entity'];
+      let lastErr = null;
+      for (const p of portals) {
+        try {
+          const data = await apiFetch(`/${p}/${abn}${refQuery}`);
+          if (p !== portal) setPortal(p === 'entity' ? 'companies' : 'people');
+          openProfileModal(mapApiItem(data[p], true));
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      if (lastErr) {
+        showToast(`Could not load ABN ${abn}: ${lastErr.message}`);
       }
     })();
   }
