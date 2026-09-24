@@ -735,6 +735,21 @@
 
   <!-- Scripts -->
   <script src="/js/data.js?v=20260915d"></script>
-  <script src="/js/app.js?v=20260923a"></script>
+  <script src="/js/app.js?v=20260924a"></script>
+
+  <!-- Watson Assistant Chatbot (XTen Register / Directory verification) -->
+  <script>
+    window.watsonAssistantChatOptions = {
+      integrationID: "c84336d4-b26e-49a7-8935-9fc1a74a3d65",
+      region: "au-syd",
+      serviceInstanceID: "59c5a30d-dc57-455a-bd2f-8ed7415e558e",
+      onLoad: async (instance) => { await instance.render(); }
+    };
+    setTimeout(function(){
+      const t=document.createElement('script');
+      t.src="https://web-chat.global.assistant.watson.appdomain.cloud/versions/" + (window.watsonAssistantChatOptions.clientVersion || 'latest') + "/WatsonAssistantChatEntry.js";
+      document.head.appendChild(t);
+    });
+  </script>
 </body>
 </html>

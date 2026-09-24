@@ -75,12 +75,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // V6 backend: a claimed listing's spotlight video (customer-supplied
       // or produced under DI-08). Absent until the backend says so.
       video_url: r.video_url || null,
-      has_video: !!r.video_url
+      has_video: !!r.video_url,
+      trading_names: r.trading_names || [],
+      category: r.category || null,
+      profession: r.profession || null,
+      anzsic_code: r.anzsic_code || null,
+      anzsic_class: r.anzsic_class || null,
+      unspsc_code: r.unspsc_code || null,
+      unspsc_codes: r.unspsc_codes || []
     };
 
     if (full) {
       item.acn = r.acn || null;
-      item.trading_names = r.trading_names || [];
+      if (!item.trading_names.length) item.trading_names = r.trading_names || [];
       item.is_peppol_ready = !!r.is_peppol_ready;
       item.peppol_id = r.peppol_id || (item.is_peppol_ready ? `0151:${r.abn}` : null);
       item.email = r.peppol_contact_email || null;
@@ -632,10 +639,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Card Template
   function createCardHTML(item) {
     const isCompany = state.activePortal === 'companies';
-    const title = isCompany ? item.name : item.full_name;
-    const subTitle = isCompany ? (item.trading_names ? item.trading_names[0] : '') : item.profession;
+    const title = isCompany ? (item.name || (item.trading_names && item.trading_names[0])) : item.full_name;
+    const subTitle = isCompany
+      ? (item.trading_names && item.trading_names[0] && item.trading_names[0] !== title ? item.trading_names[0] : (item.anzsic_class || item.category || ''))
+      : (item.profession || (item.trading_names && item.trading_names[0] ? `Trading as: ${item.trading_names[0]}` : (item.category || '')));
     const location = [item.state, item.postcode].filter(Boolean).join(' ') || 'Location not published';
-    const categoryTag = isCompany ? item.anzsic_class : item.category;
+    const categoryTag = isCompany ? (item.anzsic_class || item.category) : (item.profession || item.category);
     const tierClass = item.tier === 'prominent' ? 'tier-prominent' : (item.tier === 'featured' ? 'tier-featured' : '');
 
     return `
