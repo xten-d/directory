@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     searchQuery: '',
     selectedState: '',
     selectedCategory: '',
+    selectedUnspsc: null,  // {code, title, level} — UNSPSC product/service filter (V8)
+    claimUnspsc: [],       // [{code, title, level}] chosen on the claim form
     activeFacet: 'all', // 'all' | 'peppol' | 'gst' | 'contact' | 'video' | 'featured'
     selectedHub: '',
     sortBy: 'views',
@@ -214,6 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (urlParams.has('category')) {
     state.selectedCategory = urlParams.get('category');
+  }
+  if (urlParams.has('unspsc') && /^\d{8}$/.test(urlParams.get('unspsc'))) {
+    // Title resolves once the API answers; the code filters immediately.
+    state.selectedUnspsc = { code: urlParams.get('unspsc'), title: urlParams.get('unspsc'), level: '' };
   }
   if (urlParams.has('tool') && urlParams.get('tool') === 'verify') {
     openInvoiceCheckerModal();
@@ -541,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Pagination (Travis, 2026-09-15): any change to what is being
     // searched starts again at page 1; only the pager buttons move it.
-    const querySig = [portal, state.searchQuery, state.selectedState, state.selectedCategory].join('|');
+    const querySig = [portal, state.searchQuery, state.selectedState, state.selectedCategory, state.selectedUnspsc ? state.selectedUnspsc.code : ''].join('|');
     if (querySig !== state.lastQuerySig) {
       state.page = 1;
       state.lastQuerySig = querySig;
@@ -554,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
       params.set('category', state.selectedCategory);
       params.set('anzsic_div', state.selectedCategory);
     }
+    if (state.selectedUnspsc) params.set('unspsc_code', state.selectedUnspsc.code);
 
     const requestId = ++searchRequestSeq;
 
@@ -1558,6 +1565,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!claimantName || !claimantEmail || !claimantRole || !item || !item.abn) return;
 
+    const unspscLimit = unspscLimitForPackage(claimantPackage);
+    if (state.claimUnspsc.length > unspscLimit) {
+      alert(`The ${claimantPackage === 'standard' ? 'free' : claimantPackage.includes('prominent') ? 'Prominent' : 'Featured'} package includes ${unspscLimit} product/service ${unspscLimit === 1 ? 'category' : 'categories'}. Remove ${state.claimUnspsc.length - unspscLimit} or choose a higher package.`);
+      return;
+    }
+
     const submitBtn = claimForm.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
 
@@ -1574,7 +1587,8 @@ document.addEventListener('DOMContentLoaded', () => {
           role: claimantRole,
           package: claimantPackage,
           claim_category: claimantCategory,
-          video_url: claimantVideoUrl || undefined
+          video_url: claimantVideoUrl || undefined,
+          unspsc_codes: state.claimUnspsc.length ? state.claimUnspsc.map(c => c.code) : undefined
         })
       });
 
@@ -1607,7 +1621,180 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!group || !claimPackageSelect) return;
     group.hidden = !VIDEO_PACKAGES.includes(claimPackageSelect.value);
   }
-  if (claimPackageSelect) claimPackageSelect.addEventListener('change', syncClaimVideoField);
+  if (claimPackageSelect) claimPackageSelect.addEventListener('change', () => { syncClaimVideoField(); renderClaimUnspscChips(); });
+
+  // ── UNSPSC product & service picker (V8, 2026-09-25) ──────────────────
+  // Same tier rule as the API's claimAction(): standard → 1, anything with
+  // "prominent" in it → 5, everything else paid (featured, video add-ons) → 3.
+  function unspscLimitForPackage(pkg) {
+    if (!pkg || pkg === 'standard') return 1;
+    return pkg.includes('prominent') ? 5 : 3;
+  }
+
+  function unspscIsGroup(level) {
+    return level === 'segment' || level === 'family' || level === 'class';
+  }
+
+  // Type-ahead against GET /unspsc/search. Groups (segment/family/class)
+  // are labelled so a claimant understands one pick covers everything
+  // beneath it. Debounced; a stale response never overwrites a newer one.
+  function attachUnspscTypeahead(input, resultsEl, onPick) {
+    if (!input || !resultsEl) return;
+    let timer = null;
+    let seq = 0;
+
+    const close = () => { resultsEl.hidden = true; resultsEl.innerHTML = ''; };
+
+    const renderRows = (rows) => {
+      if (!rows.length) {
+        resultsEl.innerHTML = '<div class="unspsc-empty">No matching product or service category. Try a broader word.</div>';
+      } else {
+        resultsEl.innerHTML = rows.map(r => {
+          const group = unspscIsGroup(r.level);
+          return `<button type="button" class="unspsc-row" data-code="${r.code}" data-title="${escapeHTML(r.title)}" data-level="${r.level}">
+            <span class="unspsc-code">${r.code}</span>
+            <span class="unspsc-title">${escapeHTML(r.title)}</span>
+            <span class="unspsc-level ${group ? 'group' : ''}">${group ? r.level + ' · covers all beneath' : 'service'}</span>
+          </button>`;
+        }).join('');
+      }
+      resultsEl.hidden = false;
+    };
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clearTimeout(timer);
+      if (q.length < 2) { close(); return; }
+      timer = setTimeout(async () => {
+        const mySeq = ++seq;
+        try {
+          const data = await apiFetch(`/unspsc/search?q=${encodeURIComponent(q)}&limit=15`);
+          if (mySeq !== seq) return;
+          renderRows(data.results || []);
+        } catch (err) {
+          if (mySeq !== seq) return;
+          resultsEl.innerHTML = `<div class="unspsc-empty">Could not search categories: ${escapeHTML(err.message)}</div>`;
+          resultsEl.hidden = false;
+        }
+      }, 220);
+    });
+
+    resultsEl.addEventListener('click', (e) => {
+      const row = e.target.closest('.unspsc-row');
+      if (!row) return;
+      onPick({ code: row.dataset.code, title: row.dataset.title, level: row.dataset.level });
+      input.value = '';
+      close();
+    });
+
+    input.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    document.addEventListener('click', (e) => {
+      if (!resultsEl.hidden && !resultsEl.contains(e.target) && e.target !== input) close();
+    });
+  }
+
+  // Claim form picker: chips + "n of N used" counter tied to the package.
+  const claimUnspscInput = document.getElementById('claimUnspscInput');
+  const claimUnspscResults = document.getElementById('claimUnspscResults');
+  const claimUnspscChips = document.getElementById('claimUnspscChips');
+  const claimUnspscCounter = document.getElementById('claimUnspscCounter');
+
+  function renderClaimUnspscChips() {
+    if (!claimUnspscChips) return;
+    const limit = unspscLimitForPackage(claimPackageSelect ? claimPackageSelect.value : 'standard');
+    claimUnspscChips.innerHTML = state.claimUnspsc.map(c => `
+      <span class="unspsc-chip ${unspscIsGroup(c.level) ? 'group' : ''}" title="${c.code}">
+        ${escapeHTML(c.title)}${unspscIsGroup(c.level) ? ' (all beneath)' : ''}
+        <button type="button" data-remove="${c.code}" aria-label="Remove ${escapeHTML(c.title)}">&times;</button>
+      </span>`).join('');
+    if (claimUnspscCounter) {
+      claimUnspscCounter.textContent = `${state.claimUnspsc.length} of ${limit} used`;
+      claimUnspscCounter.classList.toggle('over', state.claimUnspsc.length > limit);
+    }
+    if (claimUnspscInput) {
+      const full = state.claimUnspsc.length >= limit;
+      claimUnspscInput.disabled = full;
+      claimUnspscInput.placeholder = full
+        ? (limit === 1 ? 'Your free listing includes 1 category — upgrade for more' : `All ${limit} categories used — remove one to change`)
+        : 'Type a product or service, e.g. carpet cleaning';
+    }
+  }
+
+  if (claimUnspscChips) {
+    claimUnspscChips.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-remove]');
+      if (!btn) return;
+      state.claimUnspsc = state.claimUnspsc.filter(c => c.code !== btn.dataset.remove);
+      renderClaimUnspscChips();
+    });
+  }
+
+  attachUnspscTypeahead(claimUnspscInput, claimUnspscResults, (pick) => {
+    const limit = unspscLimitForPackage(claimPackageSelect ? claimPackageSelect.value : 'standard');
+    if (state.claimUnspsc.some(c => c.code === pick.code)) return;
+    if (state.claimUnspsc.length >= limit) {
+      showToast(`This package includes ${limit} product/service ${limit === 1 ? 'category' : 'categories'}. Choose a higher package for more.`);
+      return;
+    }
+    state.claimUnspsc.push(pick);
+    renderClaimUnspscChips();
+  });
+
+  // Search panel: one active UNSPSC filter, shown as a pill next to the toggle.
+  const btnToggleUnspsc = document.getElementById('btnToggleUnspsc');
+  const unspscPanel = document.getElementById('unspscPanel');
+  const unspscChevron = document.getElementById('unspscChevron');
+  const unspscActivePill = document.getElementById('unspscActivePill');
+  const unspscActiveLabel = document.getElementById('unspscActiveLabel');
+  const btnClearUnspsc = document.getElementById('btnClearUnspsc');
+
+  function renderUnspscActivePill() {
+    if (!unspscActivePill) return;
+    const sel = state.selectedUnspsc;
+    unspscActivePill.hidden = !sel;
+    if (sel && unspscActiveLabel) {
+      unspscActiveLabel.textContent = `🏷️ ${sel.title}${unspscIsGroup(sel.level) ? ' (all beneath)' : ''}`;
+    }
+  }
+
+  if (btnToggleUnspsc && unspscPanel) {
+    btnToggleUnspsc.addEventListener('click', () => {
+      unspscPanel.hidden = !unspscPanel.hidden;
+      btnToggleUnspsc.classList.toggle('expanded', !unspscPanel.hidden);
+      if (unspscChevron) unspscChevron.textContent = unspscPanel.hidden ? '▼' : '▲';
+      if (!unspscPanel.hidden) {
+        const inp = document.getElementById('unspscSearchInput');
+        if (inp) inp.focus();
+      }
+    });
+  }
+
+  attachUnspscTypeahead(document.getElementById('unspscSearchInput'), document.getElementById('unspscSearchResults'), (pick) => {
+    state.selectedUnspsc = pick;
+    renderUnspscActivePill();
+    if (unspscPanel) { unspscPanel.hidden = true; btnToggleUnspsc && btnToggleUnspsc.classList.remove('expanded'); if (unspscChevron) unspscChevron.textContent = '▼'; }
+    render();
+  });
+
+  if (btnClearUnspsc) {
+    btnClearUnspsc.addEventListener('click', () => {
+      state.selectedUnspsc = null;
+      renderUnspscActivePill();
+      render();
+    });
+  }
+
+  // Deep link (?unspsc=NNNNNNNN): resolve the title for the pill.
+  if (state.selectedUnspsc && state.selectedUnspsc.title === state.selectedUnspsc.code) {
+    renderUnspscActivePill();
+    apiFetch(`/unspsc/search?q=${state.selectedUnspsc.code}&limit=1`).then(d => {
+      const hit = (d.results || [])[0];
+      if (hit && hit.code === state.selectedUnspsc.code) {
+        state.selectedUnspsc = { code: hit.code, title: hit.title, level: hit.level };
+        renderUnspscActivePill();
+      }
+    }).catch(() => {});
+  }
 
   // Embeddable player markup for a listing's video: YouTube/Vimeo → iframe,
   // anything else (an https .mp4/.webm) → native <video>.
@@ -1636,6 +1823,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const claimVideoInput = document.getElementById('claimVideoUrl');
     if (claimVideoInput) claimVideoInput.value = '';
     syncClaimVideoField();
+    // Existing codes on the listing (entity/personAction carries them) seed
+    // the picker so a re-claim or upgrade starts from what is already set.
+    state.claimUnspsc = Array.isArray(item.unspsc_codes)
+      ? item.unspsc_codes.filter(c => c && c.unspsc_code).map(c => ({ code: c.unspsc_code, title: c.title || c.unspsc_code, level: c.level || '' }))
+      : [];
+    if (claimUnspscInput) claimUnspscInput.value = '';
+    renderClaimUnspscChips();
     if (claimCategorySelect) {
       claimCategorySelect.value = '';
       const catText = (item.anzsic_class || item.category || '').toLowerCase();

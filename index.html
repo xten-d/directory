@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="/css/style.css?v=20260915b" />
+  <link rel="stylesheet" href="/css/style.css?v=20260925a" />
 
   <!-- Structured Data Schema.org -->
   <script type="application/ld+json">
@@ -145,6 +145,24 @@
             <span>📂 Browse 18 Industry Divisions</span>
             <span class="chevron" id="anzsicChevron">▼</span>
           </button>
+          <button class="btn-toggle-anzsic" id="btnToggleUnspsc" type="button">
+            <span>🏷️ Products &amp; Services</span>
+            <span class="chevron" id="unspscChevron">▼</span>
+          </button>
+          <span class="unspsc-active-pill" id="unspscActivePill" hidden>
+            <span id="unspscActiveLabel"></span>
+            <button type="button" id="btnClearUnspsc" aria-label="Clear product/service filter">&times;</button>
+          </span>
+        </div>
+
+        <!-- Products & Services (UNSPSC) filter panel -->
+        <div class="unspsc-panel" id="unspscPanel" hidden>
+          <label class="unspsc-panel-label" for="unspscSearchInput">Find listings by what they sell or do (UNSPSC)</label>
+          <div class="unspsc-picker">
+            <input type="text" id="unspscSearchInput" class="form-control" placeholder="e.g. carpet cleaning, bookkeeping, electrical contracting…" autocomplete="off" />
+            <div class="unspsc-results" id="unspscSearchResults" hidden></div>
+          </div>
+          <small class="unspsc-hint">Pick a category group to include every product or service beneath it. Results are limited to claimed listings that have chosen their categories.</small>
         </div>
 
         <!-- Collapsible ANZSIC Industry Classification Grid -->
@@ -301,12 +319,22 @@
             <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 3px;">Confirms your official registry category for regional search ranking.</small>
           </div>
 
+          <div class="form-group" id="claimUnspscGroup">
+            <label class="form-label" for="claimUnspscInput">Products &amp; Services you offer (UNSPSC) <span class="unspsc-counter" id="claimUnspscCounter">0 of 1 used</span></label>
+            <div class="unspsc-picker">
+              <div class="unspsc-chips" id="claimUnspscChips"></div>
+              <input type="text" id="claimUnspscInput" class="form-control" placeholder="Type a product or service, e.g. carpet cleaning" autocomplete="off" />
+              <div class="unspsc-results" id="claimUnspscResults" hidden></div>
+            </div>
+            <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 3px;">Buyers search by what you sell or do. Free listings choose 1 category, Featured 3, Prominent 5. Choosing a category group (segment, family or class) counts as one and covers everything beneath it.</small>
+          </div>
+
           <div class="form-group">
             <label class="form-label" for="claimPackage">Select Listing Package / Upgrade</label>
             <select id="claimPackage" class="form-control">
-              <option value="standard">Standard Registry Claim (Free / $0)</option>
-              <option value="featured">Featured Listing ($29/mo or $290/yr) — Priority placement & gold badge</option>
-              <option value="prominent" selected>Prominent Listing ($59/mo or $590/yr) — Top 3 rank & lead capture</option>
+              <option value="standard">Standard Registry Claim (Free / $0) — 1 product/service category</option>
+              <option value="featured">Featured Listing ($29/mo or $290/yr) — Priority placement, gold badge, 3 product/service categories</option>
+              <option value="prominent" selected>Prominent Listing ($59/mo or $590/yr) — Top rank, lead capture, 5 product/service categories</option>
               <option value="video_showcase">30-Sec Video Showcase Add-on (+$19/mo)</option>
               <option value="bundle_prominent_video">Prominent + Video Bundle ($75/mo — Save 10%)</option>
               <option value="bundle_prominent_video_prod">Prominent + Video Bundle ($75/mo) + we produce your 30-sec video ($195 one-off)</option>
@@ -734,8 +762,8 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="/js/data.js?v=20260915d"></script>
-  <script src="/js/app.js?v=20260924a"></script>
+  <script src="/js/data.js?v=20260925a"></script>
+  <script src="/js/app.js?v=20260925a"></script>
 
   <!-- Watson Assistant Chatbot (XTen Register / Directory verification) -->
   <script>

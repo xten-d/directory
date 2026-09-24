@@ -19,6 +19,7 @@ const PURCHASABLE_FEATURES = [
       "Official 'Verified Entity' trust seal & ATO Modulo-89 certificate",
       "Direct link to your company website & social channels (SEO Dofollow)",
       "Direct telephone click-to-call & enquiry button",
+      "Up to 3 UNSPSC product & service categories — buyers searching for what you do find you; choose a category group and every service beneath it is included",
       "Monthly visitor search & impression telemetry report"
     ]
   },
@@ -38,6 +39,7 @@ const PURCHASABLE_FEATURES = [
       "High-contrast card highlight with animated spotlight badge",
       "Full business description, products, operating hours & team directory",
       "Priority inclusion in regional buyer email digests",
+      "Up to 5 UNSPSC product & service categories (category groups cover everything beneath them), shown first when a buyer searches those services in your state",
       "Includes all features of the Featured tier"
     ]
   },
