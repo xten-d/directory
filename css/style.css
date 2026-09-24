@@ -2012,3 +2012,5 @@ a {
   border-radius: var(--radius-full);
 }
 .unspsc-active-pill button { border: 0; background: none; cursor: pointer; color: inherit; font-size: 1rem; line-height: 1; }
+/* display:inline-flex above would otherwise beat the [hidden] UA rule */
+.unspsc-active-pill[hidden], .unspsc-chips[hidden] { display: none !important; }
