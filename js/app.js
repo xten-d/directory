@@ -175,22 +175,127 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const toastNotification = document.getElementById('toastNotification');
 
-  // Detect Subdomain or URL parameters on load
+  // =========================================================================
+  // DYNAMIC SEO & SCHEMA.ORG ENGINE (Google Search Console / Rich Snippets)
+  // =========================================================================
   const hostname = window.location.hostname.toLowerCase();
   const urlParams = new URLSearchParams(window.location.search);
 
-  // Clean URLs (/verify, /verify/:abn, /location/:state/:suburb,
+  function setMetaTag(name, content, attr = 'name') {
+    if (!content) return;
+    let el = document.querySelector(`meta[${attr}="${name}"]`);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute(attr, name);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  }
+
+  function updateCanonical(url) {
+    let el = document.querySelector('link[rel="canonical"]');
+    if (!el) {
+      el = document.createElement('link');
+      el.setAttribute('rel', 'canonical');
+      document.head.appendChild(el);
+    }
+    el.setAttribute('href', url);
+  }
+
+  function setPageSEO(title, description, canonicalUrl) {
+    document.title = title;
+    setMetaTag('description', description);
+    setMetaTag('og:title', title, 'property');
+    setMetaTag('og:description', description, 'property');
+    setMetaTag('og:url', canonicalUrl, 'property');
+    setMetaTag('twitter:title', title);
+    setMetaTag('twitter:description', description);
+    updateCanonical(canonicalUrl);
+  }
+
+  function restoreDefaultSEO() {
+    const isCompany = state.activePortal === 'companies';
+    const title = isCompany 
+      ? 'XTen National Register — Australian Companies, Entities & Professional Directory'
+      : 'XTen People Portal — Australian Sole Traders & Licensed Professionals';
+    const desc = isCompany
+      ? 'Search over 3.6 million Australian registered commercial entities, ABNs, ACNs, licensed trades, and verified professional practitioners across Australia.'
+      : 'Search 1.16 million verified Australian sole traders, allied health specialists, licensed trades, and independent practitioners.';
+    const canonical = `https://${hostname}/`;
+    
+    setPageSEO(title, desc, canonical);
+    removeEntityJSONLD();
+  }
+
+  function injectEntityJSONLD(item) {
+    removeEntityJSONLD();
+    if (!item || !item.abn) return;
+
+    const isCompany = state.activePortal === 'companies';
+    const name = item.name || item.full_name || '';
+    const abnFormatted = formatABN(item.abn);
+    const entityUrl = `https://${hostname}/?abn=${item.abn}`;
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": isCompany ? (item.entity_type && item.entity_type.includes('Company') ? "Corporation" : "LocalBusiness") : "Person",
+      "@id": `${entityUrl}#entity`,
+      "name": name,
+      "legalName": name,
+      "taxID": item.abn,
+      "identifier": {
+        "@type": "PropertyValue",
+        "name": "ABN",
+        "value": item.abn
+      },
+      "url": entityUrl
+    };
+
+    if (item.acn) schema.vatID = item.acn;
+    if (item.category) schema.knowsAbout = item.category;
+    if (item.profession) schema.jobTitle = item.profession;
+
+    if (item.suburb || item.state || item.postcode) {
+      schema.address = {
+        "@type": "PostalAddress",
+        "addressLocality": item.suburb || undefined,
+        "addressRegion": item.state || undefined,
+        "postalCode": item.postcode || undefined,
+        "addressCountry": "AU"
+      };
+    }
+
+    if (item.email) schema.email = item.email;
+    if (item.trading_names && item.trading_names.length) {
+      schema.alternateName = item.trading_names;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'entity-schema-ld';
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+  }
+
+  function removeEntityJSONLD() {
+    const el = document.getElementById('entity-schema-ld');
+    if (el) el.remove();
+  }
+
+  // Clean URLs (/verify, /verify/:abn, /abn/:abn, /entity/:abn, /location/:state/:suburb,
   // /category/:x — MAA-20260913-006 deliverable 5) are served by
   // .htaccess as *internal* rewrites onto index.html?…, so the query
   // string the server appends never reaches window.location. Derive the
   // same params from the path here; explicit query params still win.
-  const cleanPath = window.location.pathname.match(/^\/(verify|location|category)(?:\/([^/]+))?(?:\/([^/]+))?\/?$/);
+  const cleanPath = window.location.pathname.match(/^\/(verify|location|category|abn|entity)(?:\/([^/]+))?(?:\/([^/]+))?\/?$/);
   if (cleanPath) {
     const [, section, first, second] = cleanPath;
     const dec = (v) => { try { return decodeURIComponent(v); } catch (e) { return v; } };
     if (section === 'verify') {
       if (first && !urlParams.has('verify')) urlParams.set('verify', dec(first));
       if (!first && !urlParams.has('tool')) urlParams.set('tool', 'verify');
+    } else if (section === 'abn' || section === 'entity') {
+      if (first && !urlParams.has('abn')) urlParams.set('abn', dec(first));
     } else if (section === 'location') {
       if (first && !urlParams.has('state')) urlParams.set('state', dec(first));
       if (second && !urlParams.has('suburb')) urlParams.set('suburb', dec(second));
@@ -383,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'All Professions'
       ]);
     }
+    restoreDefaultSEO();
     render();
   }
 
@@ -806,8 +912,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function openProfileModal(item) {
     state.selectedItem = item;
     const isCompany = state.activePortal === 'companies';
+    const orgName = isCompany ? item.name : item.full_name;
+    const abnFormatted = formatABN(item.abn);
+    const locationStr = [item.suburb, item.state, item.postcode].filter(Boolean).join(' ');
     
-    document.getElementById('modalProfileTitle').textContent = isCompany ? item.name : item.full_name;
+    // Dynamic SEO for Googlebot & Social Sharing
+    const seoTitle = `${orgName} (ABN: ${abnFormatted}) — Verified Australian Business Profile | XTen Register`;
+    const seoDesc = `Official Australian registry profile for ${orgName} (ABN ${abnFormatted}). Location: ${locationStr || 'Australia'}, GST status: ${item.gst_registered ? 'Active' : 'Unregistered'}, Verification: ${item.verified ? 'Verified Entity' : 'Registered Record'}. View compliance credentials, ABR registration data, and entity details.`;
+    const canonicalUrl = `https://${hostname}/?abn=${item.abn}`;
+
+    setPageSEO(seoTitle, seoDesc, canonicalUrl);
+    injectEntityJSONLD(item);
+
+    document.getElementById('modalProfileTitle').textContent = orgName;
     
     let badgeHTML = '';
     if (item.tier === 'prominent') {
@@ -1458,7 +1575,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "addressCountry": "AU"
       },
       "telephone": item.phone || undefined,
-      "url": item.website || `https://directory.xten.au/?search=${item.abn}`
+      "url": item.website || `https://${hostname}/?abn=${item.abn}`
     }));
 
     const schemaJSON = {
@@ -1533,6 +1650,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (invoiceCheckerModal) invoiceCheckerModal.classList.remove('active');
       if (enquiryModal) enquiryModal.classList.remove('active');
       if (badgeModal) badgeModal.classList.remove('active');
+      restoreDefaultSEO();
+    });
+  });
+
+  // Close modals on overlay backdrop click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('active');
+        if (overlay === profileModal) restoreDefaultSEO();
+      }
     });
   });
 

@@ -29,6 +29,8 @@
     # extra query params the caller appended.
     RewriteRule ^verify/?$ index.html?tool=verify [QSA,L]
     RewriteRule ^verify/([0-9]{11})/?$ index.html?verify=$1 [QSA,L]
+    RewriteRule ^abn/([0-9]{11})/?$ index.html?abn=$1 [QSA,L]
+    RewriteRule ^entity/([0-9]{11})/?$ index.html?abn=$1 [QSA,L]
     RewriteRule ^location/([A-Za-z]{2,3})/?$ index.html?state=$1 [QSA,L]
     RewriteRule ^location/([A-Za-z]{2,3})/([^/]+)/?$ index.html?state=$1&suburb=$2 [QSA,L]
     RewriteRule ^category/([^/]+)/?$ index.html?category=$1 [QSA,L]
