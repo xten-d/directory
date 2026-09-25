@@ -6,26 +6,58 @@
   <title>XTen National Register — Australian Companies, Entities & Professional Directory</title>
   <meta name="description" content="Search over 3.6 million Australian registered commercial entities, ABNs, ACNs, licensed trades, and verified professional practitioners across Australia." />
   
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" id="canonicalTag" href="https://directory.xten.au/" />
+
+  <!-- Favicons -->
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <!-- Open Graph / Social Cards -->
+  <meta property="og:site_name" content="XTen National Register" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" id="ogTitle" content="XTen National Register — Australian Companies, Entities & Professional Directory" />
+  <meta property="og:description" id="ogDesc" content="Search over 3.6 million Australian registered commercial entities, ABNs, ACNs, licensed trades, and verified professional practitioners across Australia." />
+  <meta property="og:url" id="ogUrl" content="https://directory.xten.au/" />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" id="twTitle" content="XTen National Register — Australian Companies & Professional Directory" />
+  <meta name="twitter:description" id="twDesc" content="Search over 3.6 million Australian registered commercial entities, ABNs, ACNs, and verified professional practitioners." />
+  
   <!-- Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="/css/style.css?v=20260925b" />
+  <link rel="stylesheet" href="/css/style.css?v=20260925c" />
 
   <!-- Structured Data Schema.org -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "XTen National Business & Professional Register",
-    "url": "https://directory.xten.au",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://directory.xten.au/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://directory.xten.au/#website",
+        "name": "XTen National Business & Professional Register",
+        "url": "https://directory.xten.au",
+        "description": "Australian National Commercial Registry, ABN & Licensed Professional Verification Platform",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://directory.xten.au/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://xten.au/#organization",
+        "name": "XTen",
+        "url": "https://xten.au",
+        "logo": "https://xten.au/favicon.svg"
+      }
+    ]
   }
   </script>
 </head>
