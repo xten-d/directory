@@ -1373,8 +1373,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const svgCode = generateTrustBadgeSVG(item, state.badgeStyle);
     badgePreviewBox.innerHTML = svgCode;
 
-    const abnSearch = item.abn ? item.abn : (item.name || item.full_name || '');
-    const embedSnippet = `<a href="https://directory.xten.au/?search=${encodeURIComponent(abnSearch)}" target="_blank" rel="noopener" title="Verify this business on XTen National Register">\n  ${svgCode}\n</a>`;
+    const abnDigits = item.abn ? item.abn.replace(/\s+/g, '') : '';
+    const targetUrl = abnDigits ? `https://directory.xten.au/abn/${abnDigits}` : `https://directory.xten.au/?search=${encodeURIComponent(item.name || '')}`;
+    const badgeStyleSuffix = state.badgeStyle === 'dark' ? '' : `-${state.badgeStyle}`;
+    const badgeImgUrl = abnDigits ? `https://directory.xten.au/badge/${abnDigits}${badgeStyleSuffix}.svg` : null;
+    const embedSnippet = badgeImgUrl
+      ? `<a href="${targetUrl}" target="_blank" rel="noopener" title="Verify ${escapeHTML(item.name || item.full_name || 'this business')} on XTen National Register">\n  <img src="${badgeImgUrl}" alt="Verified on XTen National Register" width="${state.badgeStyle === 'pill' ? 240 : 280}" height="${state.badgeStyle === 'pill' ? 38 : 68}" style="max-width:100%;height:auto;" />\n</a>`
+      : `<a href="${targetUrl}" target="_blank" rel="noopener" title="Verify this business on XTen National Register">\n  ${svgCode}\n</a>`;
     badgeEmbedCode.value = embedSnippet;
   }
 
