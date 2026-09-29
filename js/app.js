@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabCompanies.classList.add('active');
       tabPeople.classList.remove('active');
       portalNameEl.textContent = 'Commercial Directory';
-      portalStatPill.textContent = '2.5M+ Registered Entities';
+      portalStatPill.textContent = '2.5M+ Australian businesses';
       heroTitleEl.innerHTML = 'Official Australian <span class="highlight">Business Directory</span>';
       heroSubtitleEl.textContent = 'Explore 2.5 million verified Australian commercial entities, ABN registrations, corporate due diligence, and verified business contacts.';
       searchInput.placeholder = 'Search by company name, trading name, ABN, ACN, or suburb...';
@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabPeople.classList.add('active');
       tabCompanies.classList.remove('active');
       portalNameEl.textContent = 'People & Professionals';
-      portalStatPill.textContent = '1.16M+ Verified Practitioners';
+      portalStatPill.textContent = '1.16M+ Australian professionals';
       heroTitleEl.innerHTML = 'Australia\'s Verified <span class="highlight">Professional Register</span>';
       heroSubtitleEl.textContent = 'Search 1.16 million licensed Australian sole traders, allied health specialists, licensed trades, consultants, and independent practitioners.';
       searchInput.placeholder = 'Search by practitioner name, profession, license, or suburb...';
