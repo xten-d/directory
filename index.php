@@ -11,8 +11,12 @@ $abn = $_GET['abn'] ?? null;
 $state = $_GET['state'] ?? null;
 $suburb = $_GET['suburb'] ?? null;
 $category = $_GET['category'] ?? null;
-$host = $_SERVER['HTTP_HOST'] ?? 'directory.xten.au';
-$isPeoplePortal = (strpos($host, 'people') !== false) || (($_GET['portal'] ?? '') === 'people');
+$requestHost = strtolower($_SERVER['HTTP_HOST'] ?? 'directory.xten.au');
+$isPeoplePortal = (strpos($requestHost, 'people') !== false) || (($_GET['portal'] ?? '') === 'people');
+// Canonical host is fixed per portal, never taken from the request: the
+// same docroot answers for directory., people. and register.xten.au, and
+// a Host header is caller-controlled.
+$host = $isPeoplePortal ? 'people.xten.au' : 'directory.xten.au';
 
 // If ABN not in $_GET, try matching path regex /abn/{11} or /entity/{11} or /verify/{11}
 if (!$abn && preg_match('#^/(?:abn|entity|verify)/([0-9]{11})/?$#', $requestUri, $m)) {
@@ -145,7 +149,7 @@ if ($abn && preg_match('/^[0-9]{11}$/', $abn)) {
                 'addressCountry' => 'AU'
             ];
         }
-        $schemaScript = '<script type="application/ld+json" id="entity-pre-rendered-ld">' . json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>';
+        $schemaScript = '<script type="application/ld+json" id="entity-pre-rendered-ld">' . json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>';
 
         // Inject Schema into <head>
         $html = str_replace('</head>', "  " . $schemaScript . "\n</head>", $html);
