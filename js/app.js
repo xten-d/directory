@@ -1378,7 +1378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const badgeStyleSuffix = state.badgeStyle === 'dark' ? '' : `-${state.badgeStyle}`;
     const badgeImgUrl = abnDigits ? `https://directory.xten.au/badge/${abnDigits}${badgeStyleSuffix}.svg` : null;
     const embedSnippet = badgeImgUrl
-      ? `<a href="${targetUrl}" target="_blank" rel="noopener" title="Verify ${escapeHTML(item.name || item.full_name || 'this business')} on XTen National Register">\n  <img src="${badgeImgUrl}" alt="Verified on XTen National Register" width="${state.badgeStyle === 'pill' ? 240 : 280}" height="${state.badgeStyle === 'pill' ? 38 : 68}" style="max-width:100%;height:auto;" />\n</a>`
+      ? `<a href="${targetUrl}" target="_blank" rel="noopener" title="Verify ${escapeHTML(item.name || item.full_name || 'this business')} on XTen National Register">\n  <img src="${badgeImgUrl}" alt="${(item.is_claimed || item.claim_tier) ? 'Verified' : 'Listed'} on XTen National Register" width="${state.badgeStyle === 'pill' ? 240 : 280}" height="${state.badgeStyle === 'pill' ? 38 : 68}" style="max-width:100%;height:auto;" />\n</a>`
       : `<a href="${targetUrl}" target="_blank" rel="noopener" title="Verify this business on XTen National Register">\n  ${svgCode}\n</a>`;
     badgeEmbedCode.value = embedSnippet;
   }
@@ -1482,24 +1482,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Same wording as badge.php (Travis, 29 Sep): "Verified" only for a
+  // claimed, verified listing; otherwise "Listed". No government/ATO claims.
   function generateTrustBadgeSVG(item, style) {
-    const abnFormatted = item.abn ? formatABN(item.abn) : 'VERIFIED';
+    const abnFormatted = item.abn ? formatABN(item.abn) : '';
+    const verified = !!(item.is_claimed || item.claim_tier);
+    const topLine = verified ? 'VERIFIED ON XTEN NATIONAL REGISTER' : 'LISTED ON XTEN NATIONAL REGISTER';
+    const bottomLine = item.abn_status && item.abn_status !== 'ACT' ? 'ABN not currently active' : (verified ? 'Claimed and verified listing' : 'directory.xten.au');
     
     if (style === 'white') {
       return `<svg xmlns="http://www.w3.org/2000/svg" width="280" height="68" viewBox="0 0 280 68" fill="none">
         <rect width="280" height="68" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
         <circle cx="34" cy="34" r="18" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
         <path d="M28 34l4 4 8-8" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <text x="62" y="27" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="700" fill="#2563EB" letter-spacing="0.5">ATO MODULO-89 CHECKED</text>
+        <text x="62" y="27" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="9" font-weight="700" fill="#2563EB" letter-spacing="0.3">${topLine}</text>
         <text x="62" y="44" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="800" fill="#0F172A">ABN ${abnFormatted}</text>
-        <text x="62" y="56" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="9" fill="#64748B">directory.xten.au Verified Registry</text>
+        <text x="62" y="56" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="9" fill="#64748B">${bottomLine}</text>
       </svg>`;
     } else if (style === 'pill') {
       return `<svg xmlns="http://www.w3.org/2000/svg" width="230" height="38" viewBox="0 0 230 38" fill="none">
         <rect width="230" height="38" rx="19" fill="#0F172A"/>
         <circle cx="20" cy="19" r="10" fill="#2563EB"/>
         <path d="M16 19l3 3 5-5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        <text x="38" y="23" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">ABN ${abnFormatted} · Verified</text>
+        <text x="38" y="23" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">ABN ${abnFormatted} · ${verified ? 'Verified listing' : 'Listed'}</text>
       </svg>`;
     } else {
       // Dark Shield
@@ -1508,9 +1513,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <rect x="0.5" y="0.5" width="279" height="67" rx="7.5" stroke="#334155"/>
         <circle cx="34" cy="34" r="18" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5"/>
         <path d="M28 34l4 4 8-8" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <text x="62" y="27" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="700" fill="#38BDF8" letter-spacing="0.5">COMMONWEALTH REGISTER</text>
+        <text x="62" y="27" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="9" font-weight="700" fill="#38BDF8" letter-spacing="0.3">${topLine}</text>
         <text x="62" y="44" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="800" fill="#FFFFFF">ABN ${abnFormatted}</text>
-        <text x="62" y="56" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="9" fill="#94A3B8">Verified on directory.xten.au</text>
+        <text x="62" y="56" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="9" fill="#94A3B8">${bottomLine}</text>
       </svg>`;
     }
   }
