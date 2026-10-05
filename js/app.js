@@ -726,11 +726,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPagination({ total, capped: !!data.total_capped, pageCount: (data.results || []).length });
 
     if (items.length === 0) {
+      // The API explains an empty answer it chose to give (e.g. a name
+      // search under three characters) in `notice`.
+      const emptyHint = typeof data.notice === 'string' && data.notice
+        ? data.notice.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+        : 'Try clearing active filters, selecting "All Listings", searching by 11-digit ABN, or switching between Companies and People tabs.';
       resultsContainer.innerHTML = `
         <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; background: var(--bg-surface); border: 1px dashed var(--border-light); border-radius: var(--radius-lg);">
           <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔍</div>
           <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">No exact matching records found</h3>
-          <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 440px; margin: 0 auto;">Try clearing active filters, selecting "All Listings", searching by 11-digit ABN, or switching between Companies and People tabs.</p>
+          <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 440px; margin: 0 auto;">${emptyHint}</p>
         </div>
       `;
       return;
