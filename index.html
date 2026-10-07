@@ -362,6 +362,15 @@
             <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 3px;">Buyers search by what you sell or do. Free listings choose 1 category, Featured 3, Prominent 5. Choosing a category group (segment, family or class) counts as one and covers everything beneath it.</small>
           </div>
 
+          <div class="claim-promo-ribbon" id="claimPromoRibbon" hidden>
+            <span class="ribbon-tag">First-Mover Claim Offer</span>
+            <span class="ribbon-text" id="claimPromoRibbonText">Claim during launch and save on your first year. Offer ends 25 December 2026.</span>
+          </div>
+          <div class="billing-toggle" id="claimBillingToggle" hidden role="group" aria-label="Billing period">
+            <button type="button" class="billing-option" id="claimBillingMonthly" data-billing="m">Monthly</button>
+            <button type="button" class="billing-option" id="claimBillingAnnual" data-billing="y">Annual <span class="billing-pill" id="claimBillingPill" hidden></span></button>
+          </div>
+
           <div class="form-group">
             <label class="form-label" for="claimPackage">Select Listing Package / Upgrade</label>
             <select id="claimPackage" class="form-control">
@@ -376,12 +385,19 @@
             <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 3px;">All prices are in AUD and include GST; you receive a tax invoice. Includes 30-day money-back guarantee. No lock-in contracts.</small>
           </div>
 
+          <div class="form-group" id="claimVoucherGroup" hidden>
+            <label class="form-label" for="claimVoucher">Voucher code (optional)</label>
+            <input type="text" id="claimVoucher" class="form-control" placeholder="Enter your voucher code" maxlength="20" autocomplete="off" />
+            <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 3px;" id="claimVoucherHint">Valid on the first invoice of a full-price monthly plan, once per ABN. Not valid with annual plans, bundles, video add-ons or the first-mover offers.</small>
+          </div>
+
           <div class="form-group" id="claimVideoGroup" hidden>
             <label class="form-label" for="claimVideoUrl">Your video (optional)</label>
             <input type="url" id="claimVideoUrl" class="form-control" placeholder="https://… (MP4 link, YouTube or Vimeo)" maxlength="500" />
             <small style="font-size: 0.75rem; color: var(--text-light); display: block; margin-top: 3px;">Already have a video? Paste a link and we attach it at no production charge (16:9, 1080p, under 60 seconds). No video yet? Leave blank — our team can produce a 30-second spotlight video for you ($295, or $195 with a Featured/Prominent listing).</small>
           </div>
         </div>
+        <div class="claim-disclosure" id="claimRenewalDisclosure" hidden></div>
         <div class="modal-footer">
           <button type="button" class="btn-card-action btn-modal-dismiss">Cancel</button>
           <button type="submit" class="btn-search">Submit Verification Request</button>

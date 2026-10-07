@@ -1618,6 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="plan-pricing-block">
           <div class="plan-price-num">${feat.price_monthly}</div>
           <div class="plan-price-period">${feat.price_period}</div>
+          ${offerLine(feat.id)}
         </div>
         <ul class="plan-features-list">
           ${feat.features.map(f => `<li><span class="check">✔</span> <span>${escapeHTML(f)}</span></li>`).join('')}
@@ -1731,7 +1732,9 @@ document.addEventListener('DOMContentLoaded', () => {
           package: claimantPackage,
           claim_category: claimantCategory,
           video_url: claimantVideoUrl || undefined,
-          unspsc_codes: state.claimUnspsc.length ? state.claimUnspsc.map(c => c.code) : undefined
+          unspsc_codes: state.claimUnspsc.length ? state.claimUnspsc.map(c => c.code) : undefined,
+          voucher: (promoEls.voucherGroup && !promoEls.voucherGroup.hidden && promoEls.voucher && promoEls.voucher.value.trim()) || undefined,
+          ref: state.claimRef || undefined
         })
       });
 
@@ -1750,6 +1753,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       alert(`Could not submit your claim: ${err.message}`);
+      if (err.status === 422) { await loadPromo(item.abn); syncPromoOptions(); syncPromoUi(); } // e.g. voucher already used, offer ended
     } finally {
       if (submitBtn) submitBtn.disabled = false;
     }
@@ -1758,13 +1762,153 @@ document.addEventListener('DOMContentLoaded', () => {
   // Video link field only makes sense for a video-inclusive package.
   // Packages where the customer supplies their own video link (production
   // packages have no link to give — we make the video, DI-08).
+  // First-mover claim offer (MAA-20260925-006 item 2, SOP §4). Everything
+  // shown here comes from GET /promo, so the ribbon, toggle pill, promo
+  // packages and voucher field disappear by themselves after 25 Dec 2026;
+  // the backend refuses them from the same second whatever the modal shows.
+  const PROMO_TIERS = { featured: { monthly: 'featured', annual: 'featured_y' }, prominent: { monthly: 'prominent', annual: 'prominent_y' } };
+  const STANDARD_RENEWALS = {
+    featured: [2900, 'm'], featured_y: [29000, 'y'], prominent: [5900, 'm'], prominent_y: [59000, 'y'],
+    video_showcase: [1900, 'm'], video_standalone: [3900, 'm'], bundle_prominent_video: [7500, 'm'], bundle_prominent_video_y: [75000, 'y'],
+    bundle_prominent_video_prod: [7500, 'm'], bundle_prominent_video_prod_y: [75000, 'y']
+  };
+  const promoEls = {
+    ribbon: document.getElementById('claimPromoRibbon'),
+    toggle: document.getElementById('claimBillingToggle'),
+    monthly: document.getElementById('claimBillingMonthly'),
+    annual: document.getElementById('claimBillingAnnual'),
+    pill: document.getElementById('claimBillingPill'),
+    voucherGroup: document.getElementById('claimVoucherGroup'),
+    voucher: document.getElementById('claimVoucher'),
+    disclosure: document.getElementById('claimRenewalDisclosure')
+  };
+  state.promo = null;
+  state.claimRef = (() => {
+    const r = new URLSearchParams(window.location.search).get('ref') || '';
+    return /^[0-9a-f]{8,32}$/.test(r) ? r : '';
+  })();
+
+  function dollars(cents) {
+    return '$' + (cents / 100).toLocaleString('en-AU', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 });
+  }
+  function unitWord(unit) { return unit === 'y' ? 'year' : 'month'; }
+  function longDate(ymd) {
+    const d = new Date(`${ymd}T00:00:00+08:00`);
+    return isNaN(d) ? ymd : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  function promoIsOpen() {
+    const p = state.promo;
+    return !!(p && p.open && Array.isArray(p.offers) && p.offers.length && new Date(p.ends_at_utc) > new Date());
+  }
+  function tierOf(pkg) {
+    return (pkg || '').startsWith('prominent') ? 'prominent' : (pkg || '').startsWith('featured') ? 'featured' : null;
+  }
+  function offerFor(pkg) {
+    return promoIsOpen() ? (state.promo.offers.find(o => o.package === pkg) || null) : null;
+  }
+  async function loadPromo(abn) {
+    try {
+      state.promo = await apiFetch(`/promo${abn ? `?abn=${encodeURIComponent(abn)}` : ''}`);
+    } catch (err) {
+      state.promo = null; // no offer shown rather than a stale one
+    }
+  }
+  function syncPromoOptions() {
+    if (!claimPackageSelect) return;
+    let group = claimPackageSelect.querySelector('#claimPromoOptions');
+    if (!promoIsOpen()) {
+      if (group) {
+        if (group.querySelector('option:checked')) claimPackageSelect.value = 'standard';
+        group.remove();
+      }
+      return;
+    }
+    if (!group) {
+      group = document.createElement('optgroup');
+      group.id = 'claimPromoOptions';
+      group.label = 'First-Mover Claim Offer (until 25 December 2026)';
+      const anchor = claimPackageSelect.querySelector('option[value="prominent"]');
+      if (anchor && anchor.nextSibling) claimPackageSelect.insertBefore(group, anchor.nextSibling); else claimPackageSelect.appendChild(group);
+    }
+    const current = claimPackageSelect.value;
+    group.innerHTML = state.promo.offers.map(o =>
+      `<option value="${o.package}">${escapeHTML(o.label)} — ${dollars(o.first_price_cents)}${o.kind === 'annual' ? ' first year' : ` a month for ${o.intro_periods} months`} (normally ${dollars(o.standard_price_cents)}, save ${o.saving_percent}%)</option>`
+    ).join('');
+    if (current) claimPackageSelect.value = current;
+  }
+  function voucherShown(pkg) {
+    const v = promoIsOpen() ? state.promo.voucher : null;
+    return !!(v && Array.isArray(v.packages) && v.packages.includes(pkg) && v.available !== false);
+  }
+  function disclosureFor(pkg, voucherEntered) {
+    const cancel = ' <strong>Cancel</strong> any time before a renewal invoice: reply to it or email directory@xten.au.';
+    const billing = ', invoiced with a pay-online link; nothing is charged automatically.';
+    const o = offerFor(pkg);
+    if (o) {
+      const intro = o.kind === 'annual'
+        ? `${dollars(o.first_price_cents)} for your first year`
+        : `${dollars(o.first_price_cents)} a month for your first ${o.intro_periods} months`;
+      return `<strong>Today:</strong> ${intro}. <strong>Then:</strong> ${dollars(o.renewal_price_cents)} a ${unitWord(o.renewal_unit)} from ${longDate(o.full_price_from)} (${escapeHTML(o.renewal_label)})${billing}${cancel}`;
+    }
+    const v = promoIsOpen() ? state.promo.voucher : null;
+    const std = STANDARD_RENEWALS[pkg];
+    if (voucherEntered && voucherShown(pkg) && v.first_price_cents && v.first_price_cents[pkg] != null && std) {
+      return `<strong>Today:</strong> ${dollars(v.first_price_cents[pkg])} for your first month with the voucher (${v.percent}% off). <strong>Then:</strong> ${dollars(std[0])} a month from month 2${billing}${cancel}`;
+    }
+    if (std) {
+      return `<strong>Renews</strong> at ${dollars(std[0])} a ${unitWord(std[1])}${billing}${cancel}`;
+    }
+    return '';
+  }
+  function syncPromoUi() {
+    if (!claimPackageSelect || !promoEls.disclosure) return;
+    const pkg = claimPackageSelect.value;
+    const open = promoIsOpen();
+    const tier = tierOf(pkg);
+    if (promoEls.ribbon) promoEls.ribbon.hidden = !open;
+    if (promoEls.toggle) {
+      promoEls.toggle.hidden = !(open && tier);
+      const annual = /_y$/.test(pkg);
+      promoEls.monthly.classList.toggle('active', !annual);
+      promoEls.annual.classList.toggle('active', annual);
+      const annualOffer = tier ? offerFor(`${tier}_promo_y`) : null;
+      promoEls.pill.hidden = !annualOffer;
+      if (annualOffer) promoEls.pill.textContent = `Save ${annualOffer.saving_percent}% with First-Mover Annual (${tier === 'prominent' ? 'Prominent' : 'Featured'})`;
+    }
+    const showVoucher = voucherShown(pkg);
+    if (promoEls.voucherGroup) {
+      promoEls.voucherGroup.hidden = !showVoucher;
+      if (!showVoucher && promoEls.voucher) promoEls.voucher.value = '';
+    }
+    const text = disclosureFor(pkg, !!(promoEls.voucher && promoEls.voucher.value.trim()));
+    promoEls.disclosure.hidden = !text;
+    promoEls.disclosure.innerHTML = text;
+  }
+  function pickBilling(period) {
+    const tier = tierOf(claimPackageSelect.value) || 'prominent';
+    if (period === 'y') {
+      claimPackageSelect.value = offerFor(`${tier}_promo_y`) ? `${tier}_promo_y` : PROMO_TIERS[tier].annual;
+    } else {
+      claimPackageSelect.value = PROMO_TIERS[tier].monthly;
+    }
+    claimPackageSelect.dispatchEvent(new Event('change'));
+  }
+  if (promoEls.monthly) promoEls.monthly.addEventListener('click', () => pickBilling('m'));
+  if (promoEls.annual) promoEls.annual.addEventListener('click', () => pickBilling('y'));
+  if (promoEls.voucher) promoEls.voucher.addEventListener('input', syncPromoUi);
+  function offerLine(tier) {
+    const o = offerFor(`${tier}_promo_y`);
+    return o ? `<div class="plan-offer-line">First-Mover: ${dollars(o.first_price_cents)} first year (save ${o.saving_percent}%)</div>` : '';
+  }
+  loadPromo('');
+
   const VIDEO_PACKAGES = ['video_showcase', 'video_standalone', 'bundle_prominent_video', 'bundle_prominent_video_y'];
   function syncClaimVideoField() {
     const group = document.getElementById('claimVideoGroup');
     if (!group || !claimPackageSelect) return;
     group.hidden = !VIDEO_PACKAGES.includes(claimPackageSelect.value);
   }
-  if (claimPackageSelect) claimPackageSelect.addEventListener('change', () => { syncClaimVideoField(); renderClaimUnspscChips(); });
+  if (claimPackageSelect) claimPackageSelect.addEventListener('change', () => { syncClaimVideoField(); renderClaimUnspscChips(); syncPromoUi(); });
 
   // ── UNSPSC product & service picker (V8, 2026-09-25) ──────────────────
   // Same tier rule as the API's claimAction(): standard → 1, anything with
@@ -1963,6 +2107,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (preselectedPackage && claimPackageSelect) {
       claimPackageSelect.value = preselectedPackage;
     }
+    if (promoEls.voucher) promoEls.voucher.value = '';
+    syncPromoOptions();
+    syncPromoUi();
+    loadPromo(item.abn).then(() => { syncPromoOptions(); syncPromoUi(); });
     const claimVideoInput = document.getElementById('claimVideoUrl');
     if (claimVideoInput) claimVideoInput.value = '';
     syncClaimVideoField();

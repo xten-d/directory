@@ -2014,3 +2014,76 @@ a {
 .unspsc-active-pill button { border: 0; background: none; cursor: pointer; color: inherit; font-size: 1rem; line-height: 1; }
 /* display:inline-flex above would otherwise beat the [hidden] UA rule */
 .unspsc-active-pill[hidden], .unspsc-chips[hidden] { display: none !important; }
+
+
+/* First-mover claim offer (MAA-20260925-006 item 2) */
+.claim-promo-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(90deg, #FEF3C7, #FFFBEB);
+  border: 1px solid #F59E0B;
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+.claim-promo-ribbon .ribbon-tag {
+  background: #F59E0B;
+  color: white;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: var(--radius-full, 999px);
+}
+.billing-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: var(--radius-full, 999px);
+  padding: 3px;
+  margin-bottom: 12px;
+  background: var(--bg-light, #F8FAFC);
+}
+.billing-option {
+  border: 0;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: var(--radius-full, 999px);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-light, #64748B);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.billing-option.active {
+  background: var(--primary, #1D4ED8);
+  color: white;
+}
+.billing-pill {
+  background: #F59E0B;
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 999px);
+  white-space: nowrap;
+}
+.claim-disclosure {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--primary, #1D4ED8);
+  background: var(--bg-light, #F8FAFC);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.plan-offer-line {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #B45309;
+}
