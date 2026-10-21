@@ -1009,11 +1009,30 @@ document.addEventListener('DOMContentLoaded', () => {
         ` : ''}
       </div>
 
+      ${!item.claimed ? `
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: #ffffff; padding: 1.1rem 1.25rem; border-radius: 8px; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🏢 Do you manage or represent ${escapeHTML(orgName)}?</span>
+            </div>
+            <div style="font-size: 0.8rem; color: #bfdbfe; margin-top: 3px;">
+              Accounts payable clerks &amp; procurement officers verify this ABN regularly. Claim your profile to add direct payment contacts and protect your business identity.
+            </div>
+          </div>
+          <button type="button" class="btn-card-claim" style="background: #ffffff; color: #1e3a8a; font-weight: 700; padding: 0.5rem 1.1rem; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap;" onclick="window.launchClaimFromProfile()">
+            Claim This Listing &rarr;
+          </button>
+        </div>
+      ` : ''}
+
       <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light); font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-top: 1rem;">
         Official Australian Business Register statutory public profile. Verified via Commonwealth of Australia open data registries.
       </div>
 
       <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+        <button class="btn-util" style="background: #f0fdf4; border-color: #86efac; color: #166534; font-weight: 600;" onclick="window.launchSafetyAuditFromProfile()">
+          🛡️ Run Payee Safety Audit
+        </button>
         <button class="btn-util" onclick="window.copySelectedAccountingRecord()">
           📋 Copy for Xero / MYOB
         </button>
@@ -1031,6 +1050,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Profile modal action proxies
+  window.launchSafetyAuditFromProfile = () => {
+    profileModal.classList.remove('active');
+    if (state.selectedItem) {
+      openInvoiceCheckerModal(state.selectedItem.abn, state.selectedItem.name);
+    }
+  };
+  window.launchClaimFromProfile = () => {
+    profileModal.classList.remove('active');
+    if (state.selectedItem) {
+      openClaimModal(state.selectedItem);
+    }
+  };
   window.copySelectedAccountingRecord = () => {
     if (state.selectedItem) copyAccountingRecord(state.selectedItem);
   };
