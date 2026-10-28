@@ -812,6 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${item.is_peppol_ready ? `<span class="meta-pill" style="background: #EFF6FF; color: #1D4ED8; font-weight: 600;">⚡ Peppol Ready</span>` : ''}
             ${item.gst_registered ? `<span class="meta-pill" style="background: #ECFDF5; color: #059669;">🛡️ GST Reg.</span>` : ''}
             ${categoryTag ? `<span class="meta-pill">🏷️ ${escapeHTML(categoryTag)}</span>` : ''}
+            ${item.unspsc_code ? `<span class="meta-pill" style="background: #F0FDF4; color: #166534; font-weight: 500;" title="UNSPSC Classification: ${escapeHTML(item.unspsc_title || item.unspsc_code)}">📦 ${escapeHTML(item.unspsc_code)}</span>` : ''}
           </div>
 
           <p class="entity-description">${escapeHTML(item.description || item.bio || '')}</p>
@@ -993,7 +994,19 @@ document.addEventListener('DOMContentLoaded', () => {
         ` : ''}
 
         <div class="detail-label">Classification</div>
-        <div class="detail-value">${escapeHTML(item.anzsic_class || item.category || 'Standard Registration')}</div>
+        <div class="detail-value">${escapeHTML(item.anzsic_class || item.category || 'Standard Registration')}${item.anzsic_code ? ` (ANZSIC ${escapeHTML(item.anzsic_code)})` : ''}</div>
+
+        ${item.unspsc_code || (item.unspsc_codes && item.unspsc_codes.length) ? `
+          <div class="detail-label">UN Procurement</div>
+          <div class="detail-value">
+            <span class="meta-pill" style="background: #F0FDF4; color: #166534; font-weight: 600;">
+              📦 UNSPSC ${escapeHTML(item.unspsc_code || item.unspsc_codes[0].unspsc_code)}
+            </span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.4rem;">
+              ${escapeHTML(item.unspsc_title || (item.unspsc_codes && item.unspsc_codes[0] ? item.unspsc_codes[0].title : ''))}
+            </span>
+          </div>
+        ` : ''}
 
         <div class="detail-label">Registered Location</div>
         <div class="detail-value">📍 ${escapeHTML([item.state, item.postcode].filter(Boolean).join(' ') || 'Not published')}</div>
