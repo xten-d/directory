@@ -330,7 +330,15 @@ document.addEventListener('DOMContentLoaded', () => {
     openInvoiceCheckerModal();
   }
   if (urlParams.has('verify')) {
-    openInvoiceCheckerModal(urlParams.get('verify'));
+    const v = urlParams.get('verify').trim();
+    if (/^[0-9a-f]{64}$/i.test(v)) {
+      verifyClaimToken(v);
+    } else {
+      openInvoiceCheckerModal(v);
+    }
+  }
+  if (urlParams.has('claim_verify')) {
+    verifyClaimToken(urlParams.get('claim_verify').trim());
   }
 
   // Tokenized claim link (/claim?slug=..., generated server-side by
@@ -1102,6 +1110,19 @@ document.addEventListener('DOMContentLoaded', () => {
     invoiceCheckerModal.classList.add('active');
     if (prefillAbn && prefillName) {
       runInvoiceSafetyAudit();
+    }
+  }
+
+  async function verifyClaimToken(token) {
+    if (!token) return;
+    try {
+      const res = await apiFetch(`/claim/verify?token=${encodeURIComponent(token)}`);
+      alert(res.message || 'Your listing has been verified successfully!');
+      // Prompt upgrade to Prominent or Featured listing now that they've secured their claim
+      renderPricingModal();
+      if (pricingModal) pricingModal.classList.add('active');
+    } catch (err) {
+      alert(`Could not verify listing claim: ${err.message || 'Invalid or expired verification link'}`);
     }
   }
 
@@ -2148,8 +2169,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const name = item.name || item.full_name || '';
     document.getElementById('claimEntityName').textContent = name;
     document.getElementById('claimEntityABN').textContent = item.abn ? formatABN(item.abn) : (item.association_number || 'Community Registry');
-    if (preselectedPackage && claimPackageSelect) {
-      claimPackageSelect.value = preselectedPackage;
+    if (claimPackageSelect) {
+      claimPackageSelect.value = preselectedPackage || 'standard';
     }
     if (promoEls.voucher) promoEls.voucher.value = '';
     syncPromoOptions();
