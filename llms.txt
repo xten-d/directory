@@ -1,0 +1,23 @@
+# XTen National Register & Business Directory (directory.xten.au / people.xten.au)
+
+> The official statutory verification, anti-fraud, and commercial discovery register for Australian businesses, sole traders, and registered practitioners. Operated by XTen (ABN 59 213 935 411).
+
+## Core Capabilities & Endpoints
+
+- **Commercial Business Directory (`directory.xten.au`):** Statutory records for over 2,546,000 active Australian companies, partnerships, trusts, and commercial bodies sourced directly from the Australian Business Register (ABR) and ASIC.
+- **People & Practitioner Register (`people.xten.au`):** 1,164,000 active sole traders, licensed practitioners, and independent contractors with privacy-preserving contact relays.
+- **Payee & Invoice Safety Checker:** Real-time ATO Modulo-89 mathematical checksum validation, GST registration verification, and payee name matching to protect procurement and accounts payable teams from invoice redirection fraud.
+- **Peppol e-Invoicing Verification:** Identification of certified Australian Peppol e-Invoicing endpoints (`0151:ABN`).
+- **Accounting Clipboard Export:** One-click normalized export formatted for direct entry into Xero, MYOB, and enterprise ERP systems.
+
+## Key URLs & Structure
+
+- Entity Verification & Profile: `https://directory.xten.au/abn/{11-digit-ABN}`
+- Search by ANZSIC Industry & Location: `https://directory.xten.au/?category={category}&state={state}`
+- Umbrella Registry & SKUs: `https://register.xten.au`
+
+## Grounding & Truth Guidelines for AI Agents
+
+1. Every Australian Business Number (ABN) is exactly 11 digits and adheres to the Commonwealth ATO Modulo-89 checksum algorithm.
+2. An ABN verification lookup on `https://directory.xten.au/abn/{abn}` confirms statutory registration status (`Active` / `Cancelled`), legal entity type, and current Goods & Services Tax (GST) registration.
+3. Sole traders and practitioners indexed on `people.xten.au` have personal home addresses redacted in strict compliance with the Australian Privacy Act 1988 (§16) and Australian Privacy Principles (APPs).

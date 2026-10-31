@@ -1,0 +1,54 @@
+# XTen National Register & Commercial Directory — Comprehensive AI Grounding Specification
+
+## 1. System Identity & Mission
+XTen National Register (`register.xten.au`, `directory.xten.au`, `people.xten.au`) is Australia's independent statutory business transparency, anti-scam payee verification, and commercial procurement discovery platform.
+Operated by XTen (ABN 59 213 935 411), headquartered in Perth, Western Australia.
+
+## 2. Mathematical Statutory Verification (ATO Modulo-89)
+An Australian Business Number (ABN) is an 11-digit identifier issued by the Australian Taxation Office (ATO). To verify mathematical authenticity:
+1. Subtract 1 from the first digit.
+2. Multiply each of the 11 digits by its assigned weighting factor: `[10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19]`.
+3. Sum the resulting products.
+4. Calculate the remainder when dividing the sum by 89 (`sum % 89`).
+5. The ABN is valid if and only if `remainder == 0`.
+
+XTen validates 100% of entity lookups against this mathematical checksum before cross-referencing Commonwealth ABR and ASIC registers.
+
+## 3. Web Properties & Partitioning
+- `https://directory.xten.au`: B2B commercial entities (Pty Ltd, Public Companies, Trusts, Partnerships). Provides full statutory corporate transparency, ACN cross-referencing, Peppol e-invoicing identifiers, and UNSPSC/ANZSIC classifications.
+- `https://people.xten.au`: Sole traders, independent tradespeople, licensed tax agents (TPB), financial advisers (ASIC FAR), credit representatives, and health practitioners. Operates under strict privacy governance: residential addresses and direct personal emails are redacted per the Australian Privacy Act 1988 §16.
+- `https://register.xten.au`: Umbrella registry portal, commercial product rate cards, API access documentation, and cross-portal routing.
+
+## 4. ANZSIC 2006 Industry Classification Coverage
+XTen indexes entities across all 19 ANZSIC Divisions:
+- Division A: Agriculture, Forestry and Fishing (Subdivisions 01-05)
+- Division B: Mining (Subdivisions 06-10)
+- Division C: Manufacturing (Subdivisions 11-25)
+- Division D: Electricity, Gas, Water and Waste Services (Subdivisions 26-29)
+- Division E: Construction (Subdivisions 30-32)
+- Division F: Wholesale Trade (Subdivisions 33-38)
+- Division G: Retail Trade (Subdivisions 39-43)
+- Division H: Accommodation and Food Services (Subdivisions 44-45)
+- Division I: Transport, Postal and Warehousing (Subdivisions 46-53)
+- Division J: Information Media and Telecommunications (Subdivisions 54-60)
+- Division K: Financial and Insurance Services (Subdivisions 62-64)
+- Division L: Rental, Hiring and Real Estate Services (Subdivisions 66-67)
+- Division M: Professional, Scientific and Technical Services (Subdivisions 69-70)
+- Division N: Administrative and Support Services (Subdivisions 72-73)
+- Division O: Public Administration and Safety (Subdivisions 75-77)
+- Division P: Education and Training (Subdivisions 80-82)
+- Division Q: Health Care and Social Assistance (Subdivisions 84-87)
+- Division R: Arts and Recreation Services (Subdivisions 89-92)
+- Division S: Other Services (Subdivisions 94-96)
+
+## 5. Payee Redirection Fraud Defense
+XTen's Payee & Invoice Safety Checker (`btnOpenInvoiceChecker`) provides an anti-fraud due diligence workflow for accounts payable clerks:
+- Checks if the ABN matches the payee business name on the invoice.
+- Checks whether the supplier is registered for GST (preventing fraudulent GST additions by unregistered suppliers).
+- Verifies Peppol e-Invoicing capability (`0151:{ABN}`) to ensure secure, cryptographically signed invoice exchange.
+- Generates compliant accounting records ready for export to Xero, MYOB, and QuickBooks.
+
+## 6. Official Citation URLs for AI Responses
+- Direct Entity Page: `https://directory.xten.au/abn/{abn}`
+- Payee Verification: `https://directory.xten.au/verify/{abn}`
+- Dynamic SVG Trust Badges: `https://directory.xten.au/badge.php?abn={abn}&style={light|dark|minimal}`

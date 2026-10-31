@@ -330,7 +330,15 @@ document.addEventListener('DOMContentLoaded', () => {
     openInvoiceCheckerModal();
   }
   if (urlParams.has('verify')) {
-    openInvoiceCheckerModal(urlParams.get('verify'));
+    const v = urlParams.get('verify').trim();
+    if (/^[0-9a-f]{64}$/i.test(v)) {
+      verifyClaimToken(v);
+    } else {
+      openInvoiceCheckerModal(v);
+    }
+  }
+  if (urlParams.has('claim_verify')) {
+    verifyClaimToken(urlParams.get('claim_verify').trim());
   }
 
   // Tokenized claim link (/claim?slug=..., generated server-side by
@@ -812,6 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${item.is_peppol_ready ? `<span class="meta-pill" style="background: #EFF6FF; color: #1D4ED8; font-weight: 600;">⚡ Peppol Ready</span>` : ''}
             ${item.gst_registered ? `<span class="meta-pill" style="background: #ECFDF5; color: #059669;">🛡️ GST Reg.</span>` : ''}
             ${categoryTag ? `<span class="meta-pill">🏷️ ${escapeHTML(categoryTag)}</span>` : ''}
+            ${item.unspsc_code ? `<span class="meta-pill" style="background: #F0FDF4; color: #166534; font-weight: 500;" title="UNSPSC Classification: ${escapeHTML(item.unspsc_title || item.unspsc_code)}">📦 ${escapeHTML(item.unspsc_code)}</span>` : ''}
           </div>
 
           <p class="entity-description">${escapeHTML(item.description || item.bio || '')}</p>
@@ -993,7 +1002,19 @@ document.addEventListener('DOMContentLoaded', () => {
         ` : ''}
 
         <div class="detail-label">Classification</div>
-        <div class="detail-value">${escapeHTML(item.anzsic_class || item.category || 'Standard Registration')}</div>
+        <div class="detail-value">${escapeHTML(item.anzsic_class || item.category || 'Standard Registration')}${item.anzsic_code ? ` (ANZSIC ${escapeHTML(item.anzsic_code)})` : ''}</div>
+
+        ${item.unspsc_code || (item.unspsc_codes && item.unspsc_codes.length) ? `
+          <div class="detail-label">UN Procurement</div>
+          <div class="detail-value">
+            <span class="meta-pill" style="background: #F0FDF4; color: #166534; font-weight: 600;">
+              📦 UNSPSC ${escapeHTML(item.unspsc_code || item.unspsc_codes[0].unspsc_code)}
+            </span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.4rem;">
+              ${escapeHTML(item.unspsc_title || (item.unspsc_codes && item.unspsc_codes[0] ? item.unspsc_codes[0].title : ''))}
+            </span>
+          </div>
+        ` : ''}
 
         <div class="detail-label">Registered Location</div>
         <div class="detail-value">📍 ${escapeHTML([item.state, item.postcode].filter(Boolean).join(' ') || 'Not published')}</div>
@@ -1009,11 +1030,30 @@ document.addEventListener('DOMContentLoaded', () => {
         ` : ''}
       </div>
 
+      ${!item.claimed ? `
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: #ffffff; padding: 1.1rem 1.25rem; border-radius: 8px; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🏢 Do you manage or represent ${escapeHTML(orgName)}?</span>
+            </div>
+            <div style="font-size: 0.8rem; color: #bfdbfe; margin-top: 3px;">
+              Accounts payable clerks &amp; procurement officers verify this ABN regularly. Claim your profile to add direct payment contacts and protect your business identity.
+            </div>
+          </div>
+          <button type="button" class="btn-card-claim" style="background: #ffffff; color: #1e3a8a; font-weight: 700; padding: 0.5rem 1.1rem; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap;" onclick="window.launchClaimFromProfile()">
+            Claim This Listing &rarr;
+          </button>
+        </div>
+      ` : ''}
+
       <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light); font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-top: 1rem;">
         Official Australian Business Register statutory public profile. Verified via Commonwealth of Australia open data registries.
       </div>
 
       <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+        <button class="btn-util" style="background: #f0fdf4; border-color: #86efac; color: #166534; font-weight: 600;" onclick="window.launchSafetyAuditFromProfile()">
+          🛡️ Run Payee Safety Audit
+        </button>
         <button class="btn-util" onclick="window.copySelectedAccountingRecord()">
           📋 Copy for Xero / MYOB
         </button>
@@ -1031,6 +1071,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Profile modal action proxies
+  window.launchSafetyAuditFromProfile = () => {
+    profileModal.classList.remove('active');
+    if (state.selectedItem) {
+      openInvoiceCheckerModal(state.selectedItem.abn, state.selectedItem.name);
+    }
+  };
+  window.launchClaimFromProfile = () => {
+    profileModal.classList.remove('active');
+    if (state.selectedItem) {
+      openClaimModal(state.selectedItem);
+    }
+  };
   window.copySelectedAccountingRecord = () => {
     if (state.selectedItem) copyAccountingRecord(state.selectedItem);
   };
@@ -1058,6 +1110,19 @@ document.addEventListener('DOMContentLoaded', () => {
     invoiceCheckerModal.classList.add('active');
     if (prefillAbn && prefillName) {
       runInvoiceSafetyAudit();
+    }
+  }
+
+  async function verifyClaimToken(token) {
+    if (!token) return;
+    try {
+      const res = await apiFetch(`/claim/verify?token=${encodeURIComponent(token)}`);
+      alert(res.message || 'Your listing has been verified successfully!');
+      // Prompt upgrade to Prominent or Featured listing now that they've secured their claim
+      renderPricingModal();
+      if (pricingModal) pricingModal.classList.add('active');
+    } catch (err) {
+      alert(`Could not verify listing claim: ${err.message || 'Invalid or expired verification link'}`);
     }
   }
 
@@ -2104,8 +2169,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const name = item.name || item.full_name || '';
     document.getElementById('claimEntityName').textContent = name;
     document.getElementById('claimEntityABN').textContent = item.abn ? formatABN(item.abn) : (item.association_number || 'Community Registry');
-    if (preselectedPackage && claimPackageSelect) {
-      claimPackageSelect.value = preselectedPackage;
+    if (claimPackageSelect) {
+      claimPackageSelect.value = preselectedPackage || 'standard';
     }
     if (promoEls.voucher) promoEls.voucher.value = '';
     syncPromoOptions();
